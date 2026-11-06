@@ -15,8 +15,9 @@ export default function Home() {
   const [latestAnalysis, setLatestAnalysis] = useState<MealAnalysisResult | null>(null);
   const [hasNewAlert, setHasNewAlert] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [childFamilyCode, setChildFamilyCode] = useState<string>('');
 
-  // 부모님 세션 및 식단 데이터 복원
+  // 1. 초기 복원
   useEffect(() => {
     setMounted(true);
     const savedParent = localStorage.getItem('kidney_parent_session');
@@ -28,32 +29,60 @@ export default function Home() {
         console.error(e);
       }
     }
-
-    const savedMeal = localStorage.getItem('kidney_latest_meal');
-    if (savedMeal) {
-      try {
-        setLatestAnalysis(JSON.parse(savedMeal));
-      } catch (e) {
-        console.error(e);
-      }
-    }
   }, []);
 
-  // 자녀 로그인(NextAuth) 성공 시 가족 코드 매핑
-  const [childFamilyCode, setChildFamilyCode] = useState<string>('');
-
+  // 2. 자녀 로그인 시: 서버 DB에서 가족 코드 동기화 또는 발급
   useEffect(() => {
-    if (authSession?.user?.email) {
-      let code = localStorage.getItem('kidney_child_family_code');
-      if (!code) {
-        // 자녀 고유의 6자리 가족 코드 생성
-        code = Math.floor(100000 + Math.random() * 900000).toString();
-        localStorage.setItem('kidney_child_family_code', code);
+    async function syncFamilyCode() {
+      if (authSession?.user?.email) {
+        try {
+          const res = await fetch('/api/family', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: authSession.user.email,
+              name: authSession.user.name,
+            }),
+          });
+          const data = await res.json();
+          if (data.familyCode) {
+            setChildFamilyCode(data.familyCode);
+            setActiveTab('child');
+          }
+        } catch (e) {
+          console.error('Family code sync error:', e);
+        }
       }
-      setChildFamilyCode(code);
-      setActiveTab('child');
     }
+
+    syncFamilyCode();
   }, [authSession]);
+
+  // 3. 실시간 폴링: 자녀 화면일 때 부모님이 올린 최신 식단 자동 조회
+  useEffect(() => {
+    const currentCode = childFamilyCode || parentSession?.familyCode;
+    if (!currentCode) return;
+
+    const fetchLatestMeal = async () => {
+      try {
+        const res = await fetch(`/api/meals?familyCode=${currentCode}`);
+        const data = await res.json();
+        if (data.meal && data.meal.id !== latestAnalysis?.id) {
+          setLatestAnalysis(data.meal);
+          if (activeTab === 'child') {
+            setHasNewAlert(true);
+          }
+        }
+      } catch (err) {
+        console.error('Meal polling error:', err);
+      }
+    };
+
+    fetchLatestMeal();
+    // 5초 간격으로 새 식단 체크
+    const interval = setInterval(fetchLatestMeal, 5000);
+    return () => clearInterval(interval);
+  }, [childFamilyCode, parentSession, latestAnalysis, activeTab]);
 
   // 부모님 간편 코드 연결
   const handleParentConnect = (code: string) => {
@@ -75,18 +104,29 @@ export default function Home() {
       }
       localStorage.removeItem('kidney_parent_session');
       setParentSession(null);
+      setChildFamilyCode('');
     }
   };
 
-  const handleAnalysisComplete = (result: MealAnalysisResult) => {
+  // 부모님이 사진 촬영 및 분석 완료 시: 서버 DB에 저장
+  const handleAnalysisComplete = async (result: MealAnalysisResult) => {
     const currentCode = parentSession?.familyCode || childFamilyCode || 'FAMILY';
     const enriched = {
       ...result,
       familyCode: currentCode,
     };
     setLatestAnalysis(enriched);
-    localStorage.setItem('kidney_latest_meal', JSON.stringify(enriched));
     setHasNewAlert(true);
+
+    try {
+      await fetch('/api/meals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(enriched),
+      });
+    } catch (err) {
+      console.error('Save to DB failed:', err);
+    }
   };
 
   const handleSwitchToChild = () => {
@@ -102,7 +142,6 @@ export default function Home() {
     );
   }
 
-  // 자녀 구글 로그인도 안 되어 있고, 부모님 코드도 입력 안 된 경우 게이트 모달 표출
   const isAuthorized = !!authSession || !!parentSession;
 
   return (
@@ -225,10 +264,7 @@ export default function Home() {
         ) : (
           <ChildView
             analysis={latestAnalysis}
-            onUpdateAnalysis={(updated) => {
-              setLatestAnalysis(updated);
-              localStorage.setItem('kidney_latest_meal', JSON.stringify(updated));
-            }}
+            onUpdateAnalysis={(updated) => setLatestAnalysis(updated)}
             onSwitchToParent={() => setActiveTab('parent')}
           />
         )}

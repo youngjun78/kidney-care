@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { ShieldCheck, Users, Smartphone, KeyRound, ArrowRight, Heart } from 'lucide-react';
+import { ShieldCheck, Users, Smartphone, KeyRound, ArrowRight, Heart, Loader2 } from 'lucide-react';
 
 interface AuthGateModalProps {
   onParentConnect: (code: string) => void;
@@ -13,22 +13,42 @@ export default function AuthGateModal({ onParentConnect }: AuthGateModalProps) {
   const [parentCode, setParentCode] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [validatingCode, setValidatingCode] = useState(false);
 
-  const handleParentSubmit = (e: React.FormEvent) => {
+  const handleParentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanCode = parentCode.trim().toUpperCase();
     if (cleanCode.length < 4) {
-      setErrorMessage('자녀분께 받은 안심 코드(4~6자리)를 입력해주세요.');
+      setErrorMessage('자녀분께 받은 안심 코드(6자리)를 입력해주세요.');
       return;
     }
-    setErrorMessage('');
-    onParentConnect(cleanCode);
+
+    try {
+      setValidatingCode(true);
+      setErrorMessage('');
+
+      // 서버 DB에 실제 존재하는 가족 코드인지 검증
+      const res = await fetch(`/api/family?code=${cleanCode}`);
+      const data = await res.json();
+
+      if (!data.valid) {
+        setErrorMessage(data.error || '등록되지 않은 가족 안심 번호입니다.');
+        return;
+      }
+
+      // 검증 성공
+      onParentConnect(cleanCode);
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage('코드 확인 중 오류가 발생했습니다. 다시 시도해 주세요.');
+    } finally {
+      setValidatingCode(false);
+    }
   };
 
   const handleGoogleSignIn = async () => {
     try {
       setLoadingGoogle(true);
-      // 실제 Google OAuth 로그인 창 호출
       await signIn('google', { callbackUrl: '/' });
     } catch (err) {
       console.error(err);
@@ -72,11 +92,11 @@ export default function AuthGateModal({ onParentConnect }: AuthGateModalProps) {
                 <div className="flex items-center justify-between">
                   <span className="font-extrabold text-gray-900 text-base">부모님으로 시작하기</span>
                   <span className="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                    간편 코드
+                    간편 번호
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  복잡한 로그인 없이 자녀가 준 <strong>안심 번호</strong>로 바로 시작
+                  복잡한 로그인 없이 자녀가 알려준 <strong>안심 번호 6자리</strong>로 바로 시작
                 </p>
               </div>
             </button>
@@ -116,34 +136,50 @@ export default function AuthGateModal({ onParentConnect }: AuthGateModalProps) {
                 가족 안심 코드 입력
               </span>
               <p className="text-xs text-emerald-900 leading-relaxed">
-                자녀분이 알려준 <strong>안심 번호</strong>를 입력하시면 즉시 연동됩니다. (한 번만 입력하면 다음부터 안 물어봐요)
+                자녀분이 알려준 <strong>안심 번호</strong>를 입력하시면 자녀분의 계정과 안전하게 연동됩니다. (한 번만 입력하면 다음부터 안 물어봐요)
               </p>
             </div>
 
             <div className="space-y-1 text-left">
-              <label className="text-xs font-bold text-gray-700">안심 코드 (예: 748291 또는 CARE)</label>
+              <label className="text-xs font-bold text-gray-700">안심 번호 6자리</label>
               <input
                 type="text"
                 autoFocus
+                disabled={validatingCode}
                 value={parentCode}
                 onChange={(e) => setParentCode(e.target.value.toUpperCase())}
-                placeholder="코드 입력"
-                className="w-full text-center text-2xl font-black tracking-widest py-3 px-4 rounded-xl border-2 border-gray-300 focus:border-emerald-500 focus:outline-none uppercase"
+                placeholder="6자리 숫자 입력"
+                className="w-full text-center text-2xl font-black tracking-widest py-3 px-4 rounded-xl border-2 border-gray-300 focus:border-emerald-500 focus:outline-none uppercase disabled:bg-gray-100"
                 maxLength={8}
               />
-              {errorMessage && <p className="text-xs text-rose-600 font-medium">{errorMessage}</p>}
+              {errorMessage && (
+                <p className="text-xs text-rose-600 font-bold pt-1 break-keep leading-tight">
+                  ⚠️ {errorMessage}
+                </p>
+              )}
             </div>
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm shadow-md transition flex items-center justify-center gap-1.5"
+              disabled={validatingCode}
+              className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm shadow-md transition flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
-              <span>연동하고 식사 사진 찍으러 가기</span>
-              <ArrowRight className="w-4 h-4" />
+              {validatingCode ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>가족 확인 중...</span>
+                </>
+              ) : (
+                <>
+                  <span>확인하고 식사 사진 찍으러 가기</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
 
             <button
               type="button"
+              disabled={validatingCode}
               onClick={() => setTab('select')}
               className="w-full py-2 text-xs text-gray-400 hover:text-gray-600 font-semibold"
             >
@@ -152,16 +188,16 @@ export default function AuthGateModal({ onParentConnect }: AuthGateModalProps) {
           </form>
         )}
 
-        {/* 2. 자녀 모드: 실제 Google OAuth 로그인 */}
+        {/* 2. 자녀 모드: Google OAuth 로그인 */}
         {tab === 'child' && (
           <div className="space-y-4">
             <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-left">
               <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5 mb-1">
                 <ShieldCheck className="w-4 h-4 text-blue-600" />
-                구글 공식 계정 로그인
+                보호자 구글 계정 로그인
               </span>
               <p className="text-xs text-blue-800 leading-relaxed">
-                구글 계정으로 본인 인증 후, 부모님과 연결할 <strong>가족 고유 안심 번호</strong>가 생성됩니다.
+                구글 계정으로 로그인하시면 부모님과 연결할 <strong>가족 고유 안심 번호</strong>가 생성됩니다.
               </p>
             </div>
 
@@ -172,7 +208,6 @@ export default function AuthGateModal({ onParentConnect }: AuthGateModalProps) {
                 onClick={handleGoogleSignIn}
                 className="w-full py-3.5 px-4 rounded-xl border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold text-sm shadow-sm transition flex items-center justify-center gap-3 bg-white disabled:opacity-50"
               >
-                {/* Google Icon */}
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
