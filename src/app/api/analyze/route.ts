@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { MealAnalysisResult } from '@/types/meal';
 
-export const maxDuration = 60; // 60 seconds timeout for Vercel/Next
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +16,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'GEMINI_API_KEY가 설정되지 않았습니다.' }, { status: 500 });
     }
 
-    // Clean base64 string
     const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
     const prompt = `
@@ -43,12 +42,12 @@ export async function POST(req: Request) {
   "worstRiskNutrient": "칼륨" | "나트륨" | "인" | "단백질" | "없음",
   "foods": [
     {
-      "id": "랜덤고유문자열",
-      "name": "메뉴명 (예: 김치찌개)",
+      "id": "랜덤문자열",
+      "name": "메뉴명",
       "category": "국/찌개",
       "riskLevel": "danger",
-      "riskReason": "염분과 국물 내 칼륨 및 나트륨 농도가 매우 높음",
-      "cookingAdvice": "국물은 전량 버리고 건더기(두부, 배추) 위주로만 건져 드세요",
+      "riskReason": "원인 설명",
+      "cookingAdvice": "조리/섭취 가이드",
       "nutrients": {
         "potassium": "high",
         "sodium": "high",
@@ -58,72 +57,69 @@ export async function POST(req: Request) {
     }
   ],
   "actionGuides": [
-    "국물은 한 숟가락도 드시지 마시고 건더기만 섭취하세요",
-    "김치류는 물에 가볍게 헹궈 염분을 낮추세요"
+    "실천 행동 가이드 1",
+    "실천 행동 가이드 2"
   ],
   "friendlyMessage": "카톡 안부 메시지 전문",
-  "clinicalSummary": "고염/고칼륨 찌개류 섭취 주의 관찰 필요"
+  "clinicalSummary": "외래 진료용 요약"
 }
 `;
 
-    // Call Gemini API (gemini-1.5-flash or gemini-2.0-flash)
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // 최신 지원 모델: gemini-flash-latest 또는 gemini-3.8-flash
+    const targetModels = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-2.0-flash'];
+    let lastError = '';
+    let parsedData: any = null;
 
-    const requestBody = {
-      contents: [
-        {
-          parts: [
-            { text: prompt },
+    for (const model of targetModels) {
+      try {
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const requestBody = {
+          contents: [
             {
-              inline_data: {
-                mime_type: mimeType,
-                data: cleanBase64,
-              },
+              parts: [
+                { text: prompt },
+                {
+                  inline_data: {
+                    mime_type: mimeType,
+                    data: cleanBase64,
+                  },
+                },
+              ],
             },
           ],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.2,
-        response_mime_type: 'application/json',
-      },
-    };
+          generationConfig: {
+            temperature: 0.2,
+            response_mime_type: 'application/json',
+          },
+        };
 
-    let response = await fetch(geminiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-    });
+        const response = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
 
-    // Fallback to gemini-1.5-flash if 2.5-flash fails
-    if (!response.ok) {
-      console.warn(`Gemini 2.5 failed with ${response.status}, retrying with gemini-1.5-flash...`);
-      const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-      response = await fetch(fallbackUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
+        if (response.ok) {
+          const data = await response.json();
+          const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (rawText) {
+            const cleanedText = rawText.replace(/```json\n?|```/g, '').trim();
+            parsedData = JSON.parse(cleanedText);
+            break; // 성공 시 루프 탈출
+          }
+        } else {
+          lastError = await response.text();
+          console.warn(`Model ${model} failed:`, lastError);
+        }
+      } catch (e: any) {
+        lastError = e.message;
+        console.warn(`Model ${model} error:`, e);
+      }
     }
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('Gemini API Error:', errText);
-      return NextResponse.json(
-        { error: `Gemini API 호출 오류: ${response.status} - ${errText}` },
-        { status: 500 }
-      );
+    if (!parsedData) {
+      throw new Error(`AI 분석 모델 호출 실패: ${lastError}`);
     }
-
-    const data = await response.json();
-    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!rawText) {
-      throw new Error('Gemini 응답에서 텍스트를 추출하지 못했습니다.');
-    }
-
-    const cleanedText = rawText.replace(/```json\n?|```/g, '').trim();
-    const parsedData = JSON.parse(cleanedText);
 
     const result: MealAnalysisResult = {
       id: 'meal_' + Date.now(),
