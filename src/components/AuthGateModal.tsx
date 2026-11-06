@@ -1,19 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
+import { signIn } from 'next-auth/react';
 import { ShieldCheck, Users, Smartphone, KeyRound, ArrowRight, Heart } from 'lucide-react';
 
 interface AuthGateModalProps {
-  onChildLogin: (email: string, name: string) => void;
   onParentConnect: (code: string) => void;
 }
 
-export default function AuthGateModal({ onChildLogin, onParentConnect }: AuthGateModalProps) {
+export default function AuthGateModal({ onParentConnect }: AuthGateModalProps) {
   const [tab, setTab] = useState<'select' | 'parent' | 'child'>('select');
   const [parentCode, setParentCode] = useState('');
-  const [childEmail, setChildEmail] = useState('');
-  const [childName, setChildName] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
 
   const handleParentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,11 +25,16 @@ export default function AuthGateModal({ onChildLogin, onParentConnect }: AuthGat
     onParentConnect(cleanCode);
   };
 
-  const handleChildGoogleMock = () => {
-    // 실제 OAuth 연동 전 프로토타입 구글 로그인 시뮬레이션
-    const defaultEmail = childEmail || 'user@gmail.com';
-    const defaultName = childName || '자녀 보호자';
-    onChildLogin(defaultEmail, defaultName);
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoadingGoogle(true);
+      // 실제 Google OAuth 로그인 창 호출
+      await signIn('google', { callbackUrl: '/' });
+    } catch (err) {
+      console.error(err);
+      alert('구글 로그인 호출 중 오류가 발생했습니다.');
+      setLoadingGoogle(false);
+    }
   };
 
   return (
@@ -92,11 +96,11 @@ export default function AuthGateModal({ onChildLogin, onParentConnect }: AuthGat
                 <div className="flex items-center justify-between">
                   <span className="font-extrabold text-gray-900 text-base">자녀(보호자)로 시작하기</span>
                   <span className="text-[11px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">
-                    관리자
+                    Google 로그인
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  부모님 식단 실시간 모니터링 및 가족 코드 발급
+                  구글 계정으로 로그인 후 부모님 식단 모니터링
                 </p>
               </div>
             </button>
@@ -148,25 +152,25 @@ export default function AuthGateModal({ onChildLogin, onParentConnect }: AuthGat
           </form>
         )}
 
-        {/* 2. 자녀 모드: Google 로그인 화면 */}
+        {/* 2. 자녀 모드: 실제 Google OAuth 로그인 */}
         {tab === 'child' && (
           <div className="space-y-4">
             <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-left">
               <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5 mb-1">
                 <ShieldCheck className="w-4 h-4 text-blue-600" />
-                보호자 계정 로그인
+                구글 공식 계정 로그인
               </span>
               <p className="text-xs text-blue-800 leading-relaxed">
-                보호자 계정으로 로그인하시면 고유한 <strong>가족 안심 번호</strong>가 생성되어 부모님과 안전하게 연결됩니다.
+                구글 계정으로 본인 인증 후, 부모님과 연결할 <strong>가족 고유 안심 번호</strong>가 생성됩니다.
               </p>
             </div>
 
-            {/* 실제 소셜 로그인 버튼 형상 */}
             <div className="space-y-2.5">
               <button
                 type="button"
-                onClick={handleChildGoogleMock}
-                className="w-full py-3 px-4 rounded-xl border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold text-sm shadow-sm transition flex items-center justify-center gap-3 bg-white"
+                disabled={loadingGoogle}
+                onClick={handleGoogleSignIn}
+                className="w-full py-3.5 px-4 rounded-xl border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold text-sm shadow-sm transition flex items-center justify-center gap-3 bg-white disabled:opacity-50"
               >
                 {/* Google Icon */}
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -187,19 +191,7 @@ export default function AuthGateModal({ onChildLogin, onParentConnect }: AuthGat
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                   />
                 </svg>
-                <span>Google 계정으로 계속하기</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleChildGoogleMock}
-                className="w-full py-3 px-4 rounded-xl bg-black hover:bg-gray-900 text-white font-bold text-sm shadow-sm transition flex items-center justify-center gap-3"
-              >
-                {/* Apple Icon */}
-                <svg className="w-4 h-4 fill-white" viewBox="0 0 170 170">
-                  <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.08-7.71-7.96-12.02-14.64-6.09-9.5-10.84-20.2-14.25-32.09-3.41-11.89-5.12-23.23-5.12-34.02 0-14.2 3.46-26.04 10.37-35.53 6.92-9.48 15.67-14.32 26.27-14.52 4.9 0 10.32 1.34 16.27 4.02 5.95 2.68 9.77 4.09 11.46 4.24 1.83-.15 5.8-1.63 11.91-4.44 6.11-2.82 11.43-4.13 15.96-3.93 11.84.62 21.2 5.21 28.08 13.78-10.5 6.35-15.65 15.11-15.45 26.27.2 8.86 3.52 16.32 9.97 22.38 6.45 6.06 14.16 9.49 23.13 10.28-2.12 6.55-4.66 13.25-7.61 20.1zM119.22 31.84c0-7.39 2.64-14.12 7.92-20.2 5.28-6.08 11.75-9.84 19.41-11.28.6 3.82.68 7.37.24 10.65-.68 5.17-2.69 10.24-6.03 15.21-3.34 4.97-7.46 8.56-12.36 10.77-1.16.51-2.43.83-3.81.96-.06-2.04-.37-4.07-.93-6.11h-.44z" />
-                </svg>
-                <span>Apple 계정으로 계속하기</span>
+                <span>{loadingGoogle ? '구글 로그인 화면으로 이동 중...' : 'Google 계정으로 로그인'}</span>
               </button>
             </div>
 
