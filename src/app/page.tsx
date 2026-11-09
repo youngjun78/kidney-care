@@ -221,27 +221,40 @@ export default function Home() {
       <div className="w-full max-w-md mx-auto flex flex-col min-h-screen bg-slate-50 shadow-2xl relative">
         {/* 글로벌 탑 네비게이션: 모바일 최적화 헤더 */}
         <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs w-full">
-          <div className="w-full px-3.5 h-14 flex items-center justify-between gap-1">
-            {/* 좌측 로고 및 상태 */}
-            <div className="flex items-center gap-2 min-w-0 flex-shrink-1">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-xs flex-shrink-0">
-                <Heart className="w-4 h-4 fill-white" />
+          <div className="w-full px-3.5 h-15 flex items-center justify-between gap-1.5">
+            {/* 좌측 로고 및 브랜드 (신장 형태의 SVG 심볼 강조) */}
+            <div className="flex items-center gap-2.5 min-w-0 flex-shrink-1">
+              {/* 신장(콩팥) 형상 전용 벡터 아이콘 */}
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-cyan-600 flex items-center justify-center text-white shadow-md flex-shrink-0 p-1.5">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-full h-full text-white"
+                >
+                  {/* 왼쪽 신장(콩팥) 모양 */}
+                  <path
+                    d="M9.5 4C6.5 4 4.5 7 4.5 11.5C4.5 16 6.8 20 9.8 20C11.8 20 12.8 18.5 12.5 16C12.2 13.5 10.5 12.5 10.5 11C10.5 9.5 11.8 8.5 11.8 6.5C11.8 5 10.8 4 9.5 4Z"
+                    fill="currentColor"
+                    opacity="0.95"
+                  />
+                  {/* 오른쪽 대칭 신장(콩팥) 모양 */}
+                  <path
+                    d="M14.5 4C17.5 4 19.5 7 19.5 11.5C19.5 16 17.2 20 14.2 20C12.2 20 11.2 18.5 11.5 16C11.8 13.5 13.5 12.5 13.5 11C13.5 9.5 12.2 8.5 12.2 6.5C12.2 5 13.2 4 14.5 4Z"
+                    fill="currentColor"
+                  />
+                  {/* 중앙 건강 보호 십자 빛 */}
+                  <circle cx="12" cy="11.5" r="1.3" fill="#ffffff" />
+                </svg>
               </div>
+
               <div className="min-w-0">
-                <span className="font-black text-sm tracking-tight text-gray-950 block leading-none whitespace-nowrap">
+                <span className="font-black text-base tracking-tight text-gray-950 block leading-tight whitespace-nowrap">
                   안심콩팥케어
                 </span>
-                <div className="flex items-center gap-1 mt-1">
-                  <span className="text-[11px] text-gray-500 font-semibold truncate max-w-[80px]">
-                    {parentSession ? '부모님 댁' : (authSession?.user?.name || '보호자')}
-                  </span>
-                  {currentFamilyCode && (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] bg-emerald-50 text-emerald-800 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-200 whitespace-nowrap flex-shrink-0">
-                      <Key className="w-2.5 h-2.5" />
-                      {currentFamilyCode}
-                    </span>
-                  )}
-                </div>
+                <span className="text-[11px] text-gray-500 font-semibold block leading-tight truncate">
+                  {parentSession ? '부모님 댁 연동' : (authSession?.user?.name ? `${authSession.user.name} 보호자` : '보호자 모니터링')}
+                </span>
               </div>
             </div>
 
@@ -338,8 +351,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* 모바일 화면 꽉 채우는 본문 콘텐츠 */}
-        <section className="flex-1 w-full px-3.5 py-3.5 pb-8 space-y-3">
+        {/* 모바일 화면 꽉 채우는 본문 콘텐츠 (하단 여백 슬림화) */}
+        <section className="flex-1 w-full px-3.5 py-3 pb-3 space-y-3">
           {activeTab === 'parent' ? (
             <ParentView onAnalysisComplete={handleAnalysisComplete} />
           ) : (
@@ -355,8 +368,8 @@ export default function Home() {
           )}
         </section>
 
-        {/* 하단 면책 조항 */}
-        <footer className="w-full bg-slate-100 border-t border-slate-200 py-3.5 px-4 text-center text-[11px] text-gray-500 leading-normal">
+        {/* 하단 면책 조항 (패딩 축소) */}
+        <footer className="w-full bg-slate-100 border-t border-slate-200 py-2.5 px-3.5 text-center text-[10px] text-gray-500 leading-normal">
           <p>
             ⚠️ <strong>안내</strong>: 본 서비스는 의료기기나 진단 도구가 아니며, 신장 질환 식단 선택을 돕는 보조 가이드입니다. 정확한 영양 관리는 주치의와 상담하십시오.
           </p>

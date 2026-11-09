@@ -164,7 +164,7 @@ export default function ChildView({
   };
 
   return (
-    <div className="w-full space-y-3 pb-24">
+    <div className="w-full space-y-3 pb-6">
       {/* 1. 원본 전체 사진 확대 모달 */}
       {showFullImageModal && analysis.imageUrl && (
         <div 
