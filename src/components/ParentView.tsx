@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import imageCompression from 'browser-image-compression';
-import { Camera, Upload, CheckCircle2, AlertCircle, HeartHandshake, Loader2, Sparkles } from 'lucide-react';
+import { Camera, Upload, CheckCircle2, HeartHandshake, Loader2, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { MealAnalysisResult } from '@/types/meal';
 
@@ -22,13 +22,16 @@ export default function ParentView({ onAnalysisComplete }: ParentViewProps) {
     try {
       setLoading(true);
       setIsSuccess(false);
-      setStatusMessage('사진을 보기 좋게 정리하고 있습니다...');
+      setStatusMessage('사진을 가볍게 압축하고 있습니다...');
 
-      // 1. 자동 압축
+      // 1. 고효율 경량 압축 (AI 인식에는 충분하면서 용량은 90% 이상 절감)
+      // 최대 640px 해상도, 품질 0.6, 목표 용량 0.15MB(150KB) 이하
       const options = {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1280,
+        maxSizeMB: 0.15,
+        maxWidthOrHeight: 640,
+        initialQuality: 0.6,
         useWebWorker: true,
+        fileType: 'image/jpeg',
       };
       const compressedFile = await imageCompression(file, options);
 
@@ -48,7 +51,7 @@ export default function ParentView({ onAnalysisComplete }: ParentViewProps) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               imageBase64: base64Data,
-              mimeType: compressedFile.type || 'image/jpeg',
+              mimeType: 'image/jpeg',
             }),
           });
 
@@ -58,7 +61,7 @@ export default function ParentView({ onAnalysisComplete }: ParentViewProps) {
           }
 
           const data: MealAnalysisResult = await res.json();
-          data.imageUrl = base64Data;
+          data.imageUrl = base64Data; // 가벼운 압축 이미지로 저장
 
           setIsSuccess(true);
           setStatusMessage('전송 완료! 자녀에게 안심 알림이 전달되었습니다.');
@@ -113,7 +116,7 @@ export default function ParentView({ onAnalysisComplete }: ParentViewProps) {
             <p className="text-lg font-bold text-emerald-900 leading-relaxed break-keep">
               {statusMessage}
             </p>
-            <span className="text-xs text-emerald-600">잠시만 기다려주세요 (약 3~5초)</span>
+            <span className="text-xs text-emerald-600">초고속 경량 전송 중 (약 2~3초)</span>
           </div>
         ) : isSuccess ? (
           <div className="w-72 min-h-72 rounded-3xl bg-white border-2 border-emerald-400 shadow-xl p-6 flex flex-col items-center justify-center space-y-4">
