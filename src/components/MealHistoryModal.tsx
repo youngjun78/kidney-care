@@ -31,6 +31,14 @@ export default function MealHistoryModal({ familyCode, onClose, onSelectMeal }: 
   const [selectedDetailMeal, setSelectedDetailMeal] = useState<MealAnalysisResult | null>(null);
   const [modalFullImage, setModalFullImage] = useState<string | null>(null);
 
+  // 모달 오픈 시 부모창 배경 스크롤 고정
+  useEffect(() => {
+    document.body.classList.add('modal-open');
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, []);
+
   useEffect(() => {
     const cacheKey = `kidney_meals_history_${familyCode}`;
     const cached = localStorage.getItem(cacheKey);

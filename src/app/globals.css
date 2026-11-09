@@ -32,3 +32,11 @@ button, a, input {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* 모달 오픈 시 배경(부모창) 스크롤 및 터치 이동 원천 차단 */
+body.modal-open {
+  overflow: hidden !important;
+  overscroll-behavior: contain !important;
+  touch-action: none !important;
+}
+
+

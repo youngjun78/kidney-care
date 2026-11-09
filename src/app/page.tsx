@@ -22,6 +22,19 @@ export default function Home() {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
+  // 모달 오픈 시 부모창 스크롤 방지
+  useEffect(() => {
+    const isModalOpen = showHistoryModal || showLogoutConfirm;
+    if (isModalOpen) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [showHistoryModal, showLogoutConfirm]);
+
   // 1. 초기 복원
   useEffect(() => {
     setMounted(true);

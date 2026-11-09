@@ -47,6 +47,19 @@ export default function ChildView({
   const [showFullImageModal, setShowFullImageModal] = useState(false); // 전체 사진 모달
   const [selectedFoodForDetail, setSelectedFoodForDetail] = useState<FoodItem | null>(null); // 반찬 세부 분석 모달
 
+  // 모달 오픈 시 부모창 배경 스크롤 고정
+  React.useEffect(() => {
+    const isModalOpen = showPdfModal || showFullImageModal || !!selectedFoodForDetail;
+    if (isModalOpen) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [showPdfModal, showFullImageModal, selectedFoodForDetail]);
+
   if (!analysis) {
     if (loadingMeal) {
       return (
