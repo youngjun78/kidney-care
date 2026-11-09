@@ -17,21 +17,40 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [childFamilyCode, setChildFamilyCode] = useState<string>('');
 
-  // 1. 초기 복원
+  // 1. 초기 복원: 마운트 즉시 로컬 캐시된 식단과 코드를 0초만에 즉시 로드
   useEffect(() => {
     setMounted(true);
+
+    // 부모님 세션 캐시 확인
     const savedParent = localStorage.getItem('kidney_parent_session');
     if (savedParent) {
       try {
-        setParentSession(JSON.parse(savedParent));
+        const parsedParent = JSON.parse(savedParent);
+        setParentSession(parsedParent);
         setActiveTab('parent');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // 자녀 가족 코드 캐시 즉시 복원 (API 응답 대기 없이 바로 사용)
+    const cachedChildCode = localStorage.getItem('kidney_child_family_code');
+    if (cachedChildCode) {
+      setChildFamilyCode(cachedChildCode);
+    }
+
+    // 이전 식단 기록 즉시 복원 (화면 딜레이 제거)
+    const savedMeal = localStorage.getItem('kidney_latest_meal');
+    if (savedMeal) {
+      try {
+        setLatestAnalysis(JSON.parse(savedMeal));
       } catch (e) {
         console.error(e);
       }
     }
   }, []);
 
-  // 2. 자녀 로그인 시: 서버 DB에서 가족 코드 동기화 또는 발급
+  // 2. 자녀 로그인 시: 백그라운드에서 서버 DB 가족 코드 검증 및 동기화
   useEffect(() => {
     async function syncFamilyCode() {
       if (authSession?.user?.email) {
@@ -47,6 +66,7 @@ export default function Home() {
           const data = await res.json();
           if (data.familyCode) {
             setChildFamilyCode(data.familyCode);
+            localStorage.setItem('kidney_child_family_code', data.familyCode);
             setActiveTab('child');
           }
         } catch (e) {
@@ -58,7 +78,7 @@ export default function Home() {
     syncFamilyCode();
   }, [authSession]);
 
-  // 3. 실시간 폴링: 자녀 화면일 때 부모님이 올린 최신 식단 자동 조회
+  // 3. 최신 식단 동기화: 코드가 생기자마자 지체 없이 즉시 1회 페치 후 폴링
   useEffect(() => {
     const currentCode = childFamilyCode || parentSession?.familyCode;
     if (!currentCode) return;
@@ -67,22 +87,31 @@ export default function Home() {
       try {
         const res = await fetch(`/api/meals?familyCode=${currentCode}`);
         const data = await res.json();
-        if (data.meal && data.meal.id !== latestAnalysis?.id) {
-          setLatestAnalysis(data.meal);
-          if (activeTab === 'child') {
-            setHasNewAlert(true);
-          }
+        if (data.meal) {
+          // 데이터가 갱신되었거나 처음 로드될 때
+          setLatestAnalysis((prev) => {
+            if (!prev || prev.id !== data.meal.id) {
+              localStorage.setItem('kidney_latest_meal', JSON.stringify(data.meal));
+              if (prev && activeTab === 'child') {
+                setHasNewAlert(true);
+              }
+              return data.meal;
+            }
+            return prev;
+          });
         }
       } catch (err) {
         console.error('Meal polling error:', err);
       }
     };
 
+    // 즉시 실행 (딜레이 제거)
     fetchLatestMeal();
-    // 5초 간격으로 새 식단 체크
-    const interval = setInterval(fetchLatestMeal, 5000);
+
+    // 이후 4초 간격으로 백그라운드 갱신
+    const interval = setInterval(fetchLatestMeal, 4000);
     return () => clearInterval(interval);
-  }, [childFamilyCode, parentSession, latestAnalysis, activeTab]);
+  }, [childFamilyCode, parentSession, activeTab]);
 
   // 부모님 간편 코드 연결
   const handleParentConnect = (code: string) => {
@@ -103,12 +132,15 @@ export default function Home() {
         await signOut({ redirect: false });
       }
       localStorage.removeItem('kidney_parent_session');
+      localStorage.removeItem('kidney_child_family_code');
+      localStorage.removeItem('kidney_latest_meal');
       setParentSession(null);
       setChildFamilyCode('');
+      setLatestAnalysis(null);
     }
   };
 
-  // 부모님이 사진 촬영 및 분석 완료 시: 서버 DB에 저장
+  // 부모님이 사진 촬영 및 분석 완료 시: 로컬 즉시 반영 + 서버 DB 전송
   const handleAnalysisComplete = async (result: MealAnalysisResult) => {
     const currentCode = parentSession?.familyCode || childFamilyCode || 'FAMILY';
     const enriched = {
@@ -116,6 +148,7 @@ export default function Home() {
       familyCode: currentCode,
     };
     setLatestAnalysis(enriched);
+    localStorage.setItem('kidney_latest_meal', JSON.stringify(enriched));
     setHasNewAlert(true);
 
     try {
