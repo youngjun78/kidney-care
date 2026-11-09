@@ -218,55 +218,70 @@ export default function Home() {
       )}
 
       {/* 모바일 최적화 컨테이너: 스마트폰 기준 깔끔한 앱 쉘 레이아웃 */}
-      <div className="w-full max-w-md mx-auto flex flex-col min-h-screen bg-slate-50 shadow-2xl relative">
-        {/* 글로벌 탑 네비게이션: 모바일 최적화 헤더 */}
-        <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs w-full">
-          <div className="w-full px-3.5 h-15 flex items-center justify-between gap-1.5">
-            {/* 좌측 로고 및 브랜드 (신장 형태의 SVG 심볼 강조) */}
+      <div className="w-full max-w-md mx-auto flex flex-col min-h-screen bg-slate-50/70 shadow-2xl relative">
+        {/* 글로벌 탑 네비게이션: 안심 헬스케어 브랜드 시그니처 프리미엄 헤더 */}
+        <header className="sticky top-0 z-40 bg-gradient-to-r from-slate-900 via-slate-850 to-emerald-950 border-b border-emerald-900/40 shadow-md w-full backdrop-blur-md">
+          <div className="w-full px-3.5 h-16 flex items-center justify-between gap-1.5">
+            {/* 좌측: 신장(콩팥) 메디컬 시그니처 심볼 & 브랜드 워드마크 */}
             <div className="flex items-center gap-2.5 min-w-0 flex-shrink-1">
-              {/* 신장(콩팥) 형상 전용 벡터 아이콘 */}
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-cyan-600 flex items-center justify-center text-white shadow-md flex-shrink-0 p-1.5">
+              {/* 시그니처 콩팥 엠블럼: 에메랄드 림 글로우 + 입체적 듀얼 콩팥 비주얼 */}
+              <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-emerald-800 flex items-center justify-center text-white shadow-lg shadow-emerald-950/60 flex-shrink-0 p-1.5 border border-emerald-300/30">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
-                  className="w-full h-full text-white"
+                  className="w-full h-full drop-shadow-sm"
                 >
-                  {/* 왼쪽 신장(콩팥) 모양 */}
+                  {/* 왼쪽 신장(콩팥) */}
                   <path
-                    d="M9.5 4C6.5 4 4.5 7 4.5 11.5C4.5 16 6.8 20 9.8 20C11.8 20 12.8 18.5 12.5 16C12.2 13.5 10.5 12.5 10.5 11C10.5 9.5 11.8 8.5 11.8 6.5C11.8 5 10.8 4 9.5 4Z"
-                    fill="currentColor"
-                    opacity="0.95"
+                    d="M9.2 3.8C6.3 3.8 4.2 6.8 4.2 11.4C4.2 15.9 6.5 20.2 9.5 20.2C11.6 20.2 12.6 18.7 12.3 16.1C12 13.5 10.3 12.4 10.3 10.9C10.3 9.4 11.6 8.3 11.6 6.3C11.6 4.8 10.5 3.8 9.2 3.8Z"
+                    fill="#34d399"
                   />
-                  {/* 오른쪽 대칭 신장(콩팥) 모양 */}
+                  {/* 오른쪽 신장(콩팥) */}
                   <path
-                    d="M14.5 4C17.5 4 19.5 7 19.5 11.5C19.5 16 17.2 20 14.2 20C12.2 20 11.2 18.5 11.5 16C11.8 13.5 13.5 12.5 13.5 11C13.5 9.5 12.2 8.5 12.2 6.5C12.2 5 13.2 4 14.5 4Z"
-                    fill="currentColor"
+                    d="M14.8 3.8C17.7 3.8 19.8 6.8 19.8 11.4C19.8 15.9 17.5 20.2 14.5 20.2C12.4 20.2 11.4 18.7 11.7 16.1C12 13.5 13.7 12.4 13.7 10.9C13.7 9.4 12.4 8.3 12.4 6.3C12.4 4.8 13.5 3.8 14.8 3.8Z"
+                    fill="#a7f3d0"
                   />
-                  {/* 중앙 건강 보호 십자 빛 */}
-                  <circle cx="12" cy="11.5" r="1.3" fill="#ffffff" />
+                  {/* 신장 중심 케어 펄스 포인트 */}
+                  <circle cx="12" cy="11.2" r="1.5" fill="#ffffff" />
+                  <path
+                    d="M10 11.2H14"
+                    stroke="#059669"
+                    strokeWidth="0.8"
+                    strokeLinecap="round"
+                  />
                 </svg>
+                {/* 실시간 케어 상태 미세 인디케이터 점 */}
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-900 shadow-xs animate-pulse" />
               </div>
 
               <div className="min-w-0">
-                <span className="font-black text-base tracking-tight text-gray-950 block leading-tight whitespace-nowrap">
-                  안심콩팥케어
-                </span>
-                <span className="text-[11px] text-gray-500 font-semibold block leading-tight truncate">
-                  {parentSession ? '부모님 댁 연동' : (authSession?.user?.name ? `${authSession.user.name} 보호자` : '보호자 모니터링')}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-black text-[15px] sm:text-base tracking-tight text-white block leading-tight whitespace-nowrap">
+                    안심콩팥케어
+                  </span>
+                  <span className="text-[9px] font-black tracking-widest text-emerald-300 uppercase bg-emerald-950/80 border border-emerald-500/40 px-1 py-0.2 rounded">
+                    CKD
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block flex-shrink-0" />
+                  <span className="text-[10px] text-emerald-200/90 font-medium block leading-tight truncate">
+                    {parentSession ? '부모님 안심 밥상' : (authSession?.user?.name ? `${authSession.user.name} 님 (자녀)` : '신장 식단 모니터링')}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* 우측 모드 전환 토글 탭 & 히스토리 버튼 & 로그아웃: 가로 1줄 고정 */}
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+            {/* 우측 모드 전환 토글 탭 & 히스토리 버튼 & 로그아웃: 시그니처 다크 글래스모피즘 */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="flex items-center bg-white/10 backdrop-blur-md p-0.5 rounded-xl border border-white/10">
                 <button
                   onClick={() => setActiveTab('parent')}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap active:scale-95 ${
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-black transition whitespace-nowrap active:scale-95 ${
                     activeTab === 'parent'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md font-black'
+                      : 'text-emerald-100/70 hover:text-white'
                   }`}
                 >
                   <Smartphone className="w-3.5 h-3.5 flex-shrink-0" />
@@ -275,10 +290,10 @@ export default function Home() {
 
                 <button
                   onClick={handleSwitchToChild}
-                  className={`relative flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap active:scale-95 ${
+                  className={`relative flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-black transition whitespace-nowrap active:scale-95 ${
                     activeTab === 'child'
-                      ? 'bg-blue-900 text-white shadow-xs'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md font-black'
+                      : 'text-emerald-100/70 hover:text-white'
                   }`}
                 >
                   <UserCheck className="w-3.5 h-3.5 flex-shrink-0" />
@@ -287,7 +302,7 @@ export default function Home() {
                     <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping" />
                   )}
                   {hasNewAlert && (
-                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white" />
+                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-slate-900" />
                   )}
                 </button>
               </div>
@@ -296,7 +311,7 @@ export default function Home() {
               {isAuthorized && (
                 <button
                   onClick={() => setShowHistoryModal(true)}
-                  className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 active:bg-blue-100 rounded-xl transition"
+                  className="p-1.5 text-emerald-200/80 hover:text-white hover:bg-white/15 active:bg-white/20 rounded-xl transition"
                   title="식단 히스토리 목록 보기"
                 >
                   <History className="w-4 h-4" />
@@ -306,8 +321,8 @@ export default function Home() {
               {isAuthorized && (
                 <button
                   onClick={handleLogout}
-                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 active:bg-gray-200 rounded-xl transition"
-                  title="로그아웃 / 다른 계정 또는 코드로 변경"
+                  className="p-1.5 text-slate-400 hover:text-rose-300 hover:bg-white/10 active:bg-white/15 rounded-xl transition"
+                  title="로그아웃"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
