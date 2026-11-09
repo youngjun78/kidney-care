@@ -19,6 +19,7 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [childFamilyCode, setChildFamilyCode] = useState<string>('');
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // 1. 초기 복원
   useEffect(() => {
@@ -130,19 +131,23 @@ export default function Home() {
     localStorage.setItem('kidney_parent_session', JSON.stringify(newSession));
   };
 
-  // 로그아웃
-  const handleLogout = async () => {
-    if (confirm('로그아웃하고 메인 화면으로 돌아가시겠습니까?')) {
-      if (authSession) {
-        await signOut({ redirect: false });
-      }
-      localStorage.removeItem('kidney_parent_session');
-      localStorage.removeItem('kidney_child_family_code');
-      localStorage.removeItem('kidney_latest_meal');
-      setParentSession(null);
-      setChildFamilyCode('');
-      setLatestAnalysis(null);
+  // 로그아웃 실제 실행
+  const performLogout = async () => {
+    setShowLogoutConfirm(false);
+    if (authSession) {
+      await signOut({ redirect: false });
     }
+    localStorage.removeItem('kidney_parent_session');
+    localStorage.removeItem('kidney_child_family_code');
+    localStorage.removeItem('kidney_latest_meal');
+    setParentSession(null);
+    setChildFamilyCode('');
+    setLatestAnalysis(null);
+  };
+
+  // 로그아웃 버튼 클릭 시 모달 열기
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
   };
 
   // 부모님 사진 촬영 완료
@@ -341,6 +346,45 @@ export default function Home() {
           </p>
         </footer>
       </div>
+
+      {/* 깔끔하고 컴팩트한 모바일 전용 로그아웃 확인 팝업 모달 */}
+      {showLogoutConfirm && (
+        <div 
+          onClick={() => setShowLogoutConfirm(false)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-xs w-full p-5 space-y-4 shadow-2xl border border-gray-100 animate-in zoom-in-95 text-center"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 mx-auto flex items-center justify-center">
+              <LogOut className="w-6 h-6 text-slate-700" />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="font-black text-gray-950 text-base">로그아웃 하시겠습니까?</h3>
+              <p className="text-xs text-gray-500 leading-relaxed font-medium">
+                로그아웃 후 첫 연결 화면으로 돌아갑니다.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-2.5 px-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold text-xs transition active:scale-95"
+              >
+                취소
+              </button>
+              <button
+                onClick={performLogout}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-xs transition active:scale-95"
+              >
+                로그아웃
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
