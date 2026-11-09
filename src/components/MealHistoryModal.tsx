@@ -125,12 +125,11 @@ export default function MealHistoryModal({ familyCode, onClose, onSelectMeal }: 
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="flex-1 flex items-center justify-center max-h-[82vh] overflow-hidden">
+          <div className="flex-1 flex items-center justify-center max-h-[82vh] overflow-hidden cursor-pointer">
             <img
               src={modalFullImage}
               alt="전체 확대 사진"
               className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
             />
           </div>
           <div className="text-center py-2 text-gray-400 text-xs">
@@ -210,25 +209,39 @@ export default function MealHistoryModal({ familyCode, onClose, onSelectMeal }: 
               </p>
             </div>
 
-            {/* 반찬 리스트 */}
-            <div className="space-y-1.5">
-              <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">인식된 반찬 메뉴</h4>
-              <div className="divide-y divide-gray-100 bg-white border border-gray-200 rounded-2xl p-3.5">
+            {/* 반찬 리스트: 모바일 화면에 꽉 차고 가독성 높은 디자인 */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider px-1">
+                인식된 반찬 메뉴 ({selectedDetailMeal.foods.length}개)
+              </h4>
+              <div className="divide-y divide-gray-100 bg-white border border-gray-200/90 rounded-2xl overflow-hidden shadow-xs">
                 {selectedDetailMeal.foods.map((food) => (
-                  <div key={food.id} className="py-2.5 first:pt-1 last:pb-1 flex items-start justify-between gap-3">
-                    <div className="space-y-1 flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 whitespace-nowrap">
+                  <div key={food.id} className="p-4 space-y-2.5">
+                    {/* 상단: 메뉴명 + 구분 (좌측), 위험도 뱃지 (우측 상단 끝 밀착 배치) */}
+                    <div className="flex items-center justify-between gap-2 w-full">
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                        <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 flex-shrink-0 whitespace-nowrap">
                           {food.category}
                         </span>
-                        <span className="font-bold text-sm text-gray-900">{food.name}</span>
+                        <span className="font-black text-base sm:text-lg text-gray-950 truncate">
+                          {food.name}
+                        </span>
                       </div>
-                      <p className="text-xs text-gray-600 break-keep">{food.riskReason}</p>
-                      <p className="text-[11px] text-emerald-800 font-semibold bg-emerald-50 px-2 py-0.5 rounded break-keep">
-                        💡 {food.cookingAdvice}
-                      </p>
+                      <div className="flex-shrink-0">
+                        {getRiskBadge(food.riskLevel)}
+                      </div>
                     </div>
-                    <div className="flex-shrink-0 pt-0.5">{getRiskBadge(food.riskLevel)}</div>
+
+                    {/* 위험 사유: 폰트 키우고 가로 100% 꽉 채우기 */}
+                    <p className="text-sm text-gray-700 leading-relaxed break-keep font-medium w-full">
+                      {food.riskReason}
+                    </p>
+
+                    {/* 💡 조리 및 섭취 팁: 전체 폭 가이드 박스 */}
+                    <div className="text-xs sm:text-sm text-emerald-950 font-medium bg-emerald-50 border border-emerald-200/90 p-3 rounded-xl leading-relaxed break-keep w-full">
+                      <strong className="font-black text-emerald-900 mr-1">💡 섭취 팁:</strong>
+                      <span>{food.cookingAdvice}</span>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -185,13 +185,12 @@ export default function ChildView({
             </button>
           </div>
 
-          {/* 중앙 전체 사진 뷰 (원본 비율 유지) */}
-          <div className="flex-1 flex items-center justify-center w-full max-h-[82vh] overflow-hidden">
+          {/* 중앙 전체 사진 뷰 (원본 비율 유지 - 사진 클릭해도 닫힘) */}
+          <div className="flex-1 flex items-center justify-center w-full max-h-[82vh] overflow-hidden cursor-pointer">
             <img
               src={analysis.imageUrl}
               alt="전체 식단 사진"
               className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
             />
           </div>
 
