@@ -29,13 +29,27 @@ export default function MealHistoryModal({ familyCode, onClose, onSelectMeal }: 
   const [selectedDetailMeal, setSelectedDetailMeal] = useState<MealAnalysisResult | null>(null);
 
   useEffect(() => {
+    // 1. 캐시 즉시 복원 (모달 여는 순간 0초만에 목록 노출)
+    const cacheKey = `kidney_meals_history_${familyCode}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setMeals(parsed);
+        setLoading(false); // 캐시가 있으면 즉시 로딩 해제
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // 2. 백그라운드에서 최신 데이터 가져와 자연스럽게 동기화
     async function loadHistory() {
       try {
-        setLoading(true);
         const res = await fetch(`/api/meals?familyCode=${familyCode}&all=true`);
         const data = await res.json();
         if (data.meals) {
           setMeals(data.meals);
+          localStorage.setItem(cacheKey, JSON.stringify(data.meals));
         }
       } catch (err) {
         console.error('History load error:', err);
@@ -230,7 +244,7 @@ export default function MealHistoryModal({ familyCode, onClose, onSelectMeal }: 
 
             {/* 리스트 본문 */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {loading ? (
+              {loading && meals.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-gray-400 space-y-2">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                   <span className="text-xs font-medium">식단 기록을 불러오고 있습니다...</span>
@@ -255,6 +269,7 @@ export default function MealHistoryModal({ familyCode, onClose, onSelectMeal }: 
                           src={meal.imageUrl}
                           alt="식단 썸네일"
                           className="w-full h-full object-cover group-hover:scale-105 transition"
+                          loading="lazy"
                         />
                       ) : (
                         <UtensilsCrossed className="w-6 h-6 text-gray-300" />

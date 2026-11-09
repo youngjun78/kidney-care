@@ -54,13 +54,13 @@ export async function GET(req: Request) {
     }
 
     if (all) {
-      // 전체 리스트 조회 (최신순 최대 50건)
+      // 최신순 최대 30건 조회
       const { data, error } = await supabase
         .from('meals')
         .select('*')
         .eq('family_code', familyCode)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(30);
 
       if (error) {
         throw error;
@@ -80,7 +80,15 @@ export async function GET(req: Request) {
         clinicalSummary: row.clinical_summary,
       }));
 
-      return NextResponse.json({ meals });
+      // 60초 브라우저/CDN 캐싱 헤더 적용 (지연 제거)
+      return NextResponse.json(
+        { meals },
+        {
+          headers: {
+            'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=59',
+          },
+        }
+      );
     }
 
     // 최신 1건 조회
@@ -114,7 +122,14 @@ export async function GET(req: Request) {
       clinicalSummary: data.clinical_summary,
     };
 
-    return NextResponse.json({ meal: mealResult });
+    return NextResponse.json(
+      { meal: mealResult },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3, stale-while-revalidate=10',
+        },
+      }
+    );
   } catch (err: any) {
     console.error('Fetch meal error:', err);
     return NextResponse.json({ error: err.message || '식단 조회 실패' }, { status: 500 });
