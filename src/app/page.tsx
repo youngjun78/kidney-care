@@ -14,6 +14,7 @@ export default function Home() {
   const [parentSession, setParentSession] = useState<UserSession | null>(null);
   const [activeTab, setActiveTab] = useState<'parent' | 'child'>('child');
   const [latestAnalysis, setLatestAnalysis] = useState<MealAnalysisResult | null>(null);
+  const [loadingInitialMeal, setLoadingInitialMeal] = useState(false);
   const [hasNewAlert, setHasNewAlert] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [childFamilyCode, setChildFamilyCode] = useState<string>('');
@@ -54,6 +55,9 @@ export default function Home() {
     async function syncFamilyCode() {
       if (authSession?.user?.email) {
         try {
+          if (!latestAnalysis) {
+            setLoadingInitialMeal(true);
+          }
           const res = await fetch('/api/family', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -82,6 +86,10 @@ export default function Home() {
     const currentCode = childFamilyCode || parentSession?.familyCode;
     if (!currentCode) return;
 
+    if (!latestAnalysis) {
+      setLoadingInitialMeal(true);
+    }
+
     const fetchLatestMeal = async () => {
       try {
         const res = await fetch(`/api/meals?familyCode=${currentCode}`);
@@ -100,6 +108,8 @@ export default function Home() {
         }
       } catch (err) {
         console.error('Meal polling error:', err);
+      } finally {
+        setLoadingInitialMeal(false);
       }
     };
 
@@ -316,6 +326,7 @@ export default function Home() {
           ) : (
             <ChildView
               analysis={latestAnalysis}
+              loadingMeal={loadingInitialMeal}
               onUpdateAnalysis={(updated) => setLatestAnalysis(updated)}
               onSwitchToParent={() => setActiveTab('parent')}
               onOpenHistory={() => setShowHistoryModal(true)}

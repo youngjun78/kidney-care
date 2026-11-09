@@ -15,12 +15,14 @@ import {
   History,
   ChevronRight,
   ZoomIn,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 import { MealAnalysisResult, FoodItem, RiskLevel } from '@/types/meal';
 
 interface ChildViewProps {
   analysis: MealAnalysisResult | null;
+  loadingMeal?: boolean;
   onUpdateAnalysis: (updated: MealAnalysisResult) => void;
   onSwitchToParent: () => void;
   onOpenHistory?: () => void;
@@ -28,6 +30,7 @@ interface ChildViewProps {
 
 export default function ChildView({ 
   analysis, 
+  loadingMeal = false,
   onUpdateAnalysis, 
   onSwitchToParent,
   onOpenHistory
@@ -41,6 +44,22 @@ export default function ChildView({
   const [selectedFoodForDetail, setSelectedFoodForDetail] = useState<FoodItem | null>(null); // 반찬 세부 분석 모달
 
   if (!analysis) {
+    if (loadingMeal) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[65vh] px-4 text-center max-w-sm mx-auto">
+          <div className="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-4 shadow-xs">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          </div>
+          <h2 className="text-lg font-black text-gray-950 mb-1.5">
+            부모님 최근 식단을 동기화하고 있습니다
+          </h2>
+          <p className="text-gray-500 text-xs sm:text-sm leading-relaxed break-keep font-medium">
+            최근 촬영된 식탁 사진과 신장 영양 분석 결과를 안전하게 불러오는 중입니다...
+          </p>
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center max-w-md mx-auto">
         <div className="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-4 shadow-sm">
