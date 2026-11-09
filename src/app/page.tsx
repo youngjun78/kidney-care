@@ -35,9 +35,43 @@ export default function Home() {
     };
   }, [showHistoryModal, showLogoutConfirm]);
 
-  // 1. 초기 복원
+  const [generatingInvite, setGeneratingInvite] = useState(false);
+
+  // 1. 초기 복원 및 URL 1회용 초대 토큰 자동 로그인 처리
   useEffect(() => {
     setMounted(true);
+
+    // URL 파라미터 확인 (?invite=xxx)
+    const params = new URLSearchParams(window.location.search);
+    const inviteToken = params.get('invite');
+
+    if (inviteToken) {
+      // 1회용 보안 초대 토큰 검증 API 호출
+      fetch(`/api/invite?token=${encodeURIComponent(inviteToken)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.valid && data.familyCode) {
+            const parentUser: UserSession = {
+              role: 'parent',
+              familyCode: data.familyCode,
+              userName: `${data.childName || '자녀'}네 부모님`,
+            };
+            // 스마트폰 브라우저에 영구 저장 (다음부터 코드 없이 자동 로그인)
+            localStorage.setItem('kidney_parent_session', JSON.stringify(parentUser));
+            setParentSession(parentUser);
+            setActiveTab('parent');
+
+            // 브라우저 주소창에서 invite 토큰 파라미터 깔끔하게 제거
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } else {
+            alert(data.error || '유효하지 않거나 만료된 초대 링크입니다.');
+          }
+        })
+        .catch((err) => {
+          console.error('Invite auto login failed:', err);
+        });
+      return;
+    }
 
     const savedParent = localStorage.getItem('kidney_parent_session');
     if (savedParent) {
@@ -355,14 +389,36 @@ export default function Home() {
                 </span>
               </div>
               <button
-                onClick={() => {
-                  const text = `[안심콩팥케어] 부모님, 식사 전 사진 1장만 찍어주세요! 가족 안심 번호는 [ ${childFamilyCode} ] 입니다.\n접속 주소: ${window.location.origin}`;
-                  navigator.clipboard.writeText(text);
-                  alert('부모님께 보낼 안내 문구와 안심 번호가 복사되었습니다! 카톡에 붙여넣어 주세요.');
+                disabled={generatingInvite}
+                onClick={async () => {
+                  try {
+                    setGeneratingInvite(true);
+                    // 1회용 보안 토큰 발급
+                    const res = await fetch('/api/invite', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ familyCode: childFamilyCode }),
+                    });
+                    const data = await res.json();
+                    
+                    const inviteUrl = data.token 
+                      ? `${window.location.origin}?invite=${data.token}`
+                      : `${window.location.origin}`;
+
+                    const text = `[안심콩팥케어] 부모님! 식사하시기 전에 사진 1장만 찍어주세요 😊\n아래 링크를 누르시면 번호 입력 없이 바로 연결됩니다.\n👉 ${inviteUrl}\n(가족 안심 번호: ${childFamilyCode})`;
+                    
+                    await navigator.clipboard.writeText(text);
+                    alert('부모님 전용 1초 안심 초대장이 복사되었습니다!\n카카오톡에 붙여넣어 부모님께 보내주세요.');
+                  } catch (e) {
+                    console.error(e);
+                    alert('초대장 생성 중 오류가 발생했습니다.');
+                  } finally {
+                    setGeneratingInvite(false);
+                  }
                 }}
-                className="text-xs font-black text-blue-700 bg-white px-2.5 py-1 rounded-lg border border-blue-200 shadow-xs active:bg-blue-50 transition whitespace-nowrap flex-shrink-0"
+                className="text-xs font-black text-blue-700 bg-white px-2.5 py-1 rounded-lg border border-blue-200 shadow-xs active:bg-blue-50 transition whitespace-nowrap flex-shrink-0 disabled:opacity-50"
               >
-                카톡 공유
+                {generatingInvite ? '초대장 생성 중...' : '카톡 초대장 복사'}
               </button>
             </div>
           </div>
