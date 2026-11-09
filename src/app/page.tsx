@@ -5,8 +5,9 @@ import { useSession, signOut } from 'next-auth/react';
 import ParentView from '@/components/ParentView';
 import ChildView from '@/components/ChildView';
 import AuthGateModal from '@/components/AuthGateModal';
+import MealHistoryModal from '@/components/MealHistoryModal';
 import { MealAnalysisResult, UserSession } from '@/types/meal';
-import { Heart, Bell, Smartphone, UserCheck, Key, LogOut } from 'lucide-react';
+import { Heart, Bell, Smartphone, UserCheck, Key, LogOut, History } from 'lucide-react';
 
 export default function Home() {
   const { data: authSession, status } = useSession();
@@ -16,12 +17,12 @@ export default function Home() {
   const [hasNewAlert, setHasNewAlert] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [childFamilyCode, setChildFamilyCode] = useState<string>('');
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
 
-  // 1. 초기 복원: 마운트 즉시 로컬 캐시된 식단과 코드를 0초만에 즉시 로드
+  // 1. 초기 복원: 마운트 즉시 로컬 캐시된 식단과 코드를 0초만에 로드
   useEffect(() => {
     setMounted(true);
 
-    // 부모님 세션 캐시 확인
     const savedParent = localStorage.getItem('kidney_parent_session');
     if (savedParent) {
       try {
@@ -33,13 +34,11 @@ export default function Home() {
       }
     }
 
-    // 자녀 가족 코드 캐시 즉시 복원 (API 응답 대기 없이 바로 사용)
     const cachedChildCode = localStorage.getItem('kidney_child_family_code');
     if (cachedChildCode) {
       setChildFamilyCode(cachedChildCode);
     }
 
-    // 이전 식단 기록 즉시 복원 (화면 딜레이 제거)
     const savedMeal = localStorage.getItem('kidney_latest_meal');
     if (savedMeal) {
       try {
@@ -50,7 +49,7 @@ export default function Home() {
     }
   }, []);
 
-  // 2. 자녀 로그인 시: 백그라운드에서 서버 DB 가족 코드 검증 및 동기화
+  // 2. 자녀 로그인 시: 백그라운드에서 서버 DB 가족 코드 동기화
   useEffect(() => {
     async function syncFamilyCode() {
       if (authSession?.user?.email) {
@@ -78,7 +77,7 @@ export default function Home() {
     syncFamilyCode();
   }, [authSession]);
 
-  // 3. 최신 식단 동기화: 코드가 생기자마자 지체 없이 즉시 1회 페치 후 폴링
+  // 3. 최신 식단 동기화
   useEffect(() => {
     const currentCode = childFamilyCode || parentSession?.familyCode;
     if (!currentCode) return;
@@ -88,7 +87,6 @@ export default function Home() {
         const res = await fetch(`/api/meals?familyCode=${currentCode}`);
         const data = await res.json();
         if (data.meal) {
-          // 데이터가 갱신되었거나 처음 로드될 때
           setLatestAnalysis((prev) => {
             if (!prev || prev.id !== data.meal.id) {
               localStorage.setItem('kidney_latest_meal', JSON.stringify(data.meal));
@@ -105,10 +103,7 @@ export default function Home() {
       }
     };
 
-    // 즉시 실행 (딜레이 제거)
     fetchLatestMeal();
-
-    // 이후 4초 간격으로 백그라운드 갱신
     const interval = setInterval(fetchLatestMeal, 4000);
     return () => clearInterval(interval);
   }, [childFamilyCode, parentSession, activeTab]);
@@ -140,7 +135,7 @@ export default function Home() {
     }
   };
 
-  // 부모님이 사진 촬영 및 분석 완료 시: 로컬 즉시 반영 + 서버 DB 전송
+  // 부모님 사진 촬영 완료
   const handleAnalysisComplete = async (result: MealAnalysisResult) => {
     const currentCode = parentSession?.familyCode || childFamilyCode || 'FAMILY';
     const enriched = {
@@ -176,11 +171,21 @@ export default function Home() {
   }
 
   const isAuthorized = !!authSession || !!parentSession;
+  const currentFamilyCode = childFamilyCode || parentSession?.familyCode || '';
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
       {!isAuthorized && (
         <AuthGateModal onParentConnect={handleParentConnect} />
+      )}
+
+      {/* 식단 히스토리 전체 리스트 모달 */}
+      {showHistoryModal && (
+        <MealHistoryModal
+          familyCode={currentFamilyCode}
+          onClose={() => setShowHistoryModal(false)}
+          onSelectMeal={(meal) => setLatestAnalysis(meal)}
+        />
       )}
 
       {/* 글로벌 탑 네비게이션 */}
@@ -198,17 +203,17 @@ export default function Home() {
                 <span className="text-[10px] text-gray-400 font-semibold">
                   {parentSession ? '부모님 댁' : (authSession?.user?.name || '보호자')}
                 </span>
-                {(parentSession?.familyCode || childFamilyCode) && (
+                {currentFamilyCode && (
                   <span className="inline-flex items-center gap-0.5 text-[10px] bg-emerald-50 text-emerald-800 font-mono font-bold px-1.5 py-0.2 rounded border border-emerald-200">
                     <Key className="w-2.5 h-2.5" />
-                    {parentSession?.familyCode || childFamilyCode}
+                    {currentFamilyCode}
                   </span>
                 )}
               </div>
             </div>
           </div>
 
-          {/* 모드 전환 토글 탭 & 로그아웃 */}
+          {/* 모드 전환 토글 탭 & 히스토리 버튼 & 로그아웃 */}
           <div className="flex items-center gap-1.5">
             <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
               <button
@@ -241,6 +246,17 @@ export default function Home() {
                 )}
               </button>
             </div>
+
+            {/* 히스토리 바로가기 아이콘 버튼 */}
+            {isAuthorized && (
+              <button
+                onClick={() => setShowHistoryModal(true)}
+                className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                title="식단 히스토리 목록 보기"
+              >
+                <History className="w-4 h-4" />
+              </button>
+            )}
 
             {isAuthorized && (
               <button
@@ -299,6 +315,7 @@ export default function Home() {
             analysis={latestAnalysis}
             onUpdateAnalysis={(updated) => setLatestAnalysis(updated)}
             onSwitchToParent={() => setActiveTab('parent')}
+            onOpenHistory={() => setShowHistoryModal(true)}
           />
         )}
       </section>

@@ -5,16 +5,14 @@ import {
   ShieldAlert, 
   ShieldCheck, 
   AlertTriangle, 
-  Share2, 
   Copy, 
   Edit3, 
   FileText, 
-  ChevronRight, 
   Check, 
-  ExternalLink,
-  Flame,
-  Calendar,
-  Sparkles
+  Flame, 
+  Calendar, 
+  Sparkles,
+  History
 } from 'lucide-react';
 import { MealAnalysisResult, FoodItem, RiskLevel } from '@/types/meal';
 
@@ -22,9 +20,15 @@ interface ChildViewProps {
   analysis: MealAnalysisResult | null;
   onUpdateAnalysis: (updated: MealAnalysisResult) => void;
   onSwitchToParent: () => void;
+  onOpenHistory?: () => void;
 }
 
-export default function ChildView({ analysis, onUpdateAnalysis, onSwitchToParent }: ChildViewProps) {
+export default function ChildView({ 
+  analysis, 
+  onUpdateAnalysis, 
+  onSwitchToParent,
+  onOpenHistory
+}: ChildViewProps) {
   const [copied, setCopied] = useState(false);
   const [editingFoodId, setEditingFoodId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -41,12 +45,23 @@ export default function ChildView({ analysis, onUpdateAnalysis, onSwitchToParent
         <p className="text-gray-600 mb-6 text-sm leading-relaxed">
           부모님 모드에서 식탁 사진을 촬영하시면 실시간 칼륨/나트륨/인 위험도와 카톡 안부 메시지가 이곳에 나타납니다.
         </p>
-        <button
-          onClick={onSwitchToParent}
-          className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition"
-        >
-          부모님 모드로 가서 식단 촬영해보기
-        </button>
+        <div className="flex flex-col gap-2.5 w-full">
+          <button
+            onClick={onSwitchToParent}
+            className="w-full px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition"
+          >
+            부모님 모드로 가서 식단 촬영해보기
+          </button>
+          {onOpenHistory && (
+            <button
+              onClick={onOpenHistory}
+              className="w-full px-6 py-3 rounded-xl bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold text-sm transition flex items-center justify-center gap-2"
+            >
+              <History className="w-4 h-4 text-blue-600" />
+              <span>과거 식단 전체 목록 조회</span>
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -98,7 +113,6 @@ export default function ChildView({ analysis, onUpdateAnalysis, onSwitchToParent
       return food;
     });
 
-    // 전체 위험도 재계산
     let newOverall: RiskLevel = 'safe';
     if (updatedFoods.some((f) => f.riskLevel === 'danger')) {
       newOverall = 'danger';
@@ -122,12 +136,29 @@ export default function ChildView({ analysis, onUpdateAnalysis, onSwitchToParent
   };
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-4 space-y-5 pb-20">
+    <div className="max-w-xl mx-auto px-4 py-4 space-y-4 pb-20">
+      {/* 식단 모아보기 빠른 바로가기 바 */}
+      {onOpenHistory && (
+        <div className="flex items-center justify-between bg-white px-4 py-2.5 rounded-xl border border-gray-200/80 shadow-sm">
+          <div className="flex items-center gap-2">
+            <History className="w-4 h-4 text-blue-600" />
+            <span className="text-xs font-bold text-gray-700">이전 식단들이 궁금하신가요?</span>
+          </div>
+          <button
+            onClick={onOpenHistory}
+            className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-lg transition"
+          >
+            식단 히스토리 전체보기 →
+          </button>
+        </div>
+      )}
+
       {/* 최상단: 실시간 모니터링 배너 */}
       <div className="bg-gradient-to-r from-blue-900 to-indigo-900 rounded-2xl p-5 text-white shadow-xl">
         <div className="flex items-center justify-between text-xs text-blue-200 mb-2">
           <span className="inline-flex items-center gap-1 bg-blue-800/60 px-2 py-0.5 rounded-md">
             <Calendar className="w-3.5 h-3.5" />
+            {new Date(analysis.timestamp).toLocaleDateString([], { month: 'numeric', day: 'numeric' })}{' '}
             {new Date(analysis.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 식단 분석
           </span>
           <span className="bg-white/20 px-2 py-0.5 rounded-full font-semibold">부모님 댁 연동됨</span>
@@ -159,7 +190,7 @@ export default function ChildView({ analysis, onUpdateAnalysis, onSwitchToParent
             />
             <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1 font-medium">
               <Sparkles className="w-3 h-3 text-amber-300" />
-              <span>부모님이 방금 촬영한 식탁 사진</span>
+              <span>부모님이 촬영하신 식탁 사진</span>
             </div>
           </div>
         </div>
@@ -179,7 +210,6 @@ export default function ChildView({ analysis, onUpdateAnalysis, onSwitchToParent
           {analysis.foods.map((food) => (
             <div key={food.id} className="py-3 first:pt-1 last:pb-1">
               {editingFoodId === food.id ? (
-                // 1초 보정 인라인 편집 폼
                 <div className="bg-blue-50/70 p-3 rounded-xl space-y-2 border border-blue-200">
                   <div className="flex items-center justify-between text-xs font-bold text-blue-900">
                     <span>메뉴명 / 위험도 보정</span>
@@ -270,7 +300,7 @@ export default function ChildView({ analysis, onUpdateAnalysis, onSwitchToParent
         </div>
       </div>
 
-      {/* 부모님 맞춤 즉시 실천 행동 가이드 */}
+      {/* 즉시 실천 행동 수칙 */}
       <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 space-y-2">
         <h4 className="text-sm font-bold text-amber-950 flex items-center gap-1.5">
           <Flame className="w-4 h-4 text-amber-600" />
@@ -288,7 +318,7 @@ export default function ChildView({ analysis, onUpdateAnalysis, onSwitchToParent
         </ul>
       </div>
 
-      {/* 핵심 기능: 다정한 원클릭 카톡 안부 메시지 */}
+      {/* 다정한 원클릭 카톡 안부 메시지 */}
       <div className="bg-white rounded-2xl p-5 border border-yellow-200 shadow-md space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -328,15 +358,25 @@ export default function ChildView({ analysis, onUpdateAnalysis, onSwitchToParent
         </div>
       </div>
 
-      {/* 외래 진료용 PDF 및 주치의 리포트 버튼 */}
-      <div className="pt-2">
+      {/* 하단 보조 버튼들 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
         <button
           onClick={() => setShowPdfModal(true)}
-          className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50 text-gray-700 hover:text-blue-800 font-bold text-sm flex items-center justify-center gap-2 transition"
+          className="py-3 px-4 rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50 text-gray-700 hover:text-blue-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition"
         >
           <FileText className="w-4 h-4 text-blue-600" />
-          <span>신장내과 외래 진료용 요약 리포트 (미리보기)</span>
+          <span>외래 진료용 요약 리포트</span>
         </button>
+
+        {onOpenHistory && (
+          <button
+            onClick={onOpenHistory}
+            className="py-3 px-4 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition"
+          >
+            <History className="w-4 h-4 text-blue-600" />
+            <span>식단 전체 히스토리 목록</span>
+          </button>
+        )}
       </div>
 
       {/* 진료용 리포트 모달 */}
