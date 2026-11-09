@@ -485,11 +485,11 @@ export default function ChildView({
         </div>
       )}
 
-      {/* 부모님 즉시 실천 행동 수칙 */}
+      {/* 부모님을 위한 다정한 식사 가이드 */}
       <div className="bg-amber-50/90 border border-amber-200/90 rounded-2xl p-4 sm:p-5 space-y-3 shadow-xs">
         <h4 className="text-base sm:text-lg font-black text-amber-950 flex items-center gap-1.5">
           <Flame className="w-5 h-5 text-amber-600 flex-shrink-0" />
-          <span>부모님 즉시 실천 행동 수칙</span>
+          <span>부모님 건강을 위한 안심 식사 가이드</span>
         </h4>
         <ul className="space-y-2.5">
           {analysis.actionGuides.map((guide, idx) => (
@@ -510,9 +510,8 @@ export default function ChildView({
             <div className="w-8 h-8 rounded-full bg-[#FEE500] flex items-center justify-center font-black text-xs text-black shadow-xs flex-shrink-0">
               talk
             </div>
-            <span className="text-base sm:text-lg font-black text-gray-950 whitespace-nowrap">다정한 카톡 안부 메시지</span>
+            <span className="text-base sm:text-lg font-black text-gray-950 whitespace-nowrap">부모님께 보낼 안부 카톡</span>
           </div>
-          <span className="text-xs text-gray-500 font-bold whitespace-nowrap">AI 다정 어조</span>
         </div>
 
         <div className="bg-amber-50/70 p-4 rounded-xl border border-amber-100 text-sm sm:text-base text-gray-800 leading-relaxed break-keep font-medium">

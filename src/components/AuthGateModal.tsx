@@ -62,11 +62,39 @@ export default function AuthGateModal({ onParentConnect }: AuthGateModalProps) {
       <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-6 animate-in fade-in zoom-in-95">
         {/* 서비스 타이틀 */}
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 mx-auto flex items-center justify-center text-white shadow-md">
-            <Heart className="w-6 h-6 fill-white" />
+          {/* 헤더와 동일한 시그니처 신장(콩팥) 로고 엠블럼 */}
+          <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-emerald-800 mx-auto flex items-center justify-center text-white shadow-xl shadow-emerald-950/20 p-2.5 border border-emerald-300/30">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-full h-full drop-shadow-sm"
+            >
+              <path
+                d="M9.2 3.8C6.3 3.8 4.2 6.8 4.2 11.4C4.2 15.9 6.5 20.2 9.5 20.2C11.6 20.2 12.6 18.7 12.3 16.1C12 13.5 10.3 12.4 10.3 10.9C10.3 9.4 11.6 8.3 11.6 6.3C11.6 4.8 10.5 3.8 9.2 3.8Z"
+                fill="#34d399"
+              />
+              <path
+                d="M14.8 3.8C17.7 3.8 19.8 6.8 19.8 11.4C19.8 15.9 17.5 20.2 14.5 20.2C12.4 20.2 11.4 18.7 11.7 16.1C12 13.5 13.7 12.4 13.7 10.9C13.7 9.4 12.4 8.3 12.4 6.3C12.4 4.8 13.5 3.8 14.8 3.8Z"
+                fill="#a7f3d0"
+              />
+              <circle cx="12" cy="11.2" r="1.5" fill="#ffffff" />
+              <path
+                d="M10 11.2H14"
+                stroke="#059669"
+                strokeWidth="0.8"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white shadow-xs animate-pulse" />
           </div>
-          <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">안심콩팥케어</h2>
-          <p className="text-xs sm:text-sm text-gray-500 break-keep">
+          <div className="flex items-center justify-center gap-1.5 pt-1">
+            <h2 className="text-2xl font-black text-gray-950 tracking-tight">안심콩팥케어</h2>
+            <span className="text-[10px] font-black tracking-widest text-emerald-800 bg-emerald-100 border border-emerald-300 px-1.5 py-0.5 rounded">
+              CKD
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-gray-500 break-keep font-medium">
             아무나 볼 수 없도록 가족만의 안전한 공간으로 보호 중입니다.
           </p>
         </div>
