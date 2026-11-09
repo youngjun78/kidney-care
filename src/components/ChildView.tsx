@@ -23,6 +23,8 @@ import { MealAnalysisResult, FoodItem, RiskLevel } from '@/types/meal';
 interface ChildViewProps {
   analysis: MealAnalysisResult | null;
   loadingMeal?: boolean;
+  isHistoricalView?: boolean;
+  onResetToLatest?: () => void;
   onUpdateAnalysis: (updated: MealAnalysisResult) => void;
   onSwitchToParent: () => void;
   onOpenHistory?: () => void;
@@ -31,6 +33,8 @@ interface ChildViewProps {
 export default function ChildView({ 
   analysis, 
   loadingMeal = false,
+  isHistoricalView = false,
+  onResetToLatest,
   onUpdateAnalysis, 
   onSwitchToParent,
   onOpenHistory
@@ -217,17 +221,26 @@ export default function ChildView({
         </div>
       )}
 
-      {/* 최상단: 실시간 모니터링 배너 */}
+      {/* 최상단: 실시간 모니터링 배너 또는 과거 기록 뷰 배너 */}
       <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-2xl p-4 sm:p-5 text-white shadow-md">
         <div className="flex items-center justify-between text-xs text-blue-200 mb-2.5">
-          <span className="inline-flex items-center gap-1 bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-md font-medium whitespace-nowrap text-[11px]">
-            <Calendar className="w-3 h-3 text-blue-300 flex-shrink-0" />
+          <span className="inline-flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-0.5 rounded-md font-medium whitespace-nowrap text-xs">
+            <Calendar className="w-3.5 h-3.5 text-blue-300 flex-shrink-0" />
             {new Date(analysis.timestamp).toLocaleDateString([], { month: 'numeric', day: 'numeric' })}{' '}
             {new Date(analysis.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 식단 분석
           </span>
-          <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2 py-0.5 rounded-full font-bold text-[10px] whitespace-nowrap">
-            부모님 댁 연동됨
-          </span>
+          {isHistoricalView ? (
+            <button
+              onClick={onResetToLatest}
+              className="bg-amber-400 text-amber-950 px-2.5 py-0.5 rounded-full font-black text-xs whitespace-nowrap active:scale-95 transition shadow-xs"
+            >
+              최신 식단으로 복귀
+            </button>
+          ) : (
+            <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2.5 py-0.5 rounded-full font-bold text-xs whitespace-nowrap">
+              부모님 댁 연동됨
+            </span>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-2">

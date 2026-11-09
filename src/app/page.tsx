@@ -14,6 +14,7 @@ export default function Home() {
   const [parentSession, setParentSession] = useState<UserSession | null>(null);
   const [activeTab, setActiveTab] = useState<'parent' | 'child'>('child');
   const [latestAnalysis, setLatestAnalysis] = useState<MealAnalysisResult | null>(null);
+  const [selectedHistoricalMealId, setSelectedHistoricalMealId] = useState<string | null>(null);
   const [loadingInitialMeal, setLoadingInitialMeal] = useState(false);
   const [hasNewAlert, setHasNewAlert] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -96,6 +97,14 @@ export default function Home() {
         const res = await fetch(`/api/meals?familyCode=${currentCode}`);
         const data = await res.json();
         if (data.meal) {
+          // 사용자가 히스토리에서 과거 특정 식단을 골라 보고 있는 상태라면 자동 폴링으로 덮어쓰지 않음
+          if (selectedHistoricalMealId) {
+            if (data.meal.id !== selectedHistoricalMealId && activeTab === 'child') {
+              setHasNewAlert(true);
+            }
+            return;
+          }
+
           setLatestAnalysis((prev) => {
             if (!prev || prev.id !== data.meal.id) {
               localStorage.setItem('kidney_latest_meal', JSON.stringify(data.meal));
@@ -117,7 +126,7 @@ export default function Home() {
     fetchLatestMeal();
     const interval = setInterval(fetchLatestMeal, 4000);
     return () => clearInterval(interval);
-  }, [childFamilyCode, parentSession, activeTab]);
+  }, [childFamilyCode, parentSession, activeTab, selectedHistoricalMealId]);
 
   // 부모님 간편 코드 연결
   const handleParentConnect = (code: string) => {
@@ -199,7 +208,12 @@ export default function Home() {
         <MealHistoryModal
           familyCode={currentFamilyCode}
           onClose={() => setShowHistoryModal(false)}
-          onSelectMeal={(meal) => setLatestAnalysis(meal)}
+          onSelectMeal={(meal) => {
+            setSelectedHistoricalMealId(meal.id);
+            setLatestAnalysis(meal);
+            setActiveTab('child');
+            setShowHistoryModal(false);
+          }}
         />
       )}
 
@@ -332,6 +346,8 @@ export default function Home() {
             <ChildView
               analysis={latestAnalysis}
               loadingMeal={loadingInitialMeal}
+              isHistoricalView={!!selectedHistoricalMealId}
+              onResetToLatest={() => setSelectedHistoricalMealId(null)}
               onUpdateAnalysis={(updated) => setLatestAnalysis(updated)}
               onSwitchToParent={() => setActiveTab('parent')}
               onOpenHistory={() => setShowHistoryModal(true)}
