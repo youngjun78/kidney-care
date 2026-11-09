@@ -174,7 +174,7 @@ export default function Home() {
   const currentFamilyCode = childFamilyCode || parentSession?.familyCode || '';
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans overflow-x-hidden">
+    <main className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans overflow-x-hidden selection:bg-blue-100">
       {!isAuthorized && (
         <AuthGateModal onParentConnect={handleParentConnect} />
       )}
@@ -188,145 +188,148 @@ export default function Home() {
         />
       )}
 
-      {/* 글로벌 탑 네비게이션: 갤럭시 등 좁은 모바일 화면에서도 1줄 유지 */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm w-full">
-        <div className="w-full max-w-xl mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-1">
-          {/* 좌측 로고 및 상태 */}
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-1">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-sm flex-shrink-0">
-              <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white" />
-            </div>
-            <div className="min-w-0">
-              <span className="font-extrabold text-xs sm:text-base tracking-tight text-gray-900 block leading-tight whitespace-nowrap">
-                안심콩팥케어
-              </span>
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className="text-[9px] sm:text-[10px] text-gray-400 font-semibold truncate max-w-[70px] sm:max-w-none">
-                  {parentSession ? '부모님 댁' : (authSession?.user?.name || '보호자')}
+      {/* 모바일 최적화 컨테이너: 스마트폰 기준 깔끔한 앱 쉘 레이아웃 */}
+      <div className="w-full max-w-md mx-auto flex flex-col min-h-screen bg-slate-50 shadow-2xl relative">
+        {/* 글로벌 탑 네비게이션: 모바일 최적화 헤더 */}
+        <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs w-full">
+          <div className="w-full px-3.5 h-14 flex items-center justify-between gap-1">
+            {/* 좌측 로고 및 상태 */}
+            <div className="flex items-center gap-2 min-w-0 flex-shrink-1">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-xs flex-shrink-0">
+                <Heart className="w-4 h-4 fill-white" />
+              </div>
+              <div className="min-w-0">
+                <span className="font-black text-sm tracking-tight text-gray-950 block leading-none whitespace-nowrap">
+                  안심콩팥케어
                 </span>
-                {currentFamilyCode && (
-                  <span className="inline-flex items-center gap-0.5 text-[9px] sm:text-[10px] bg-emerald-50 text-emerald-800 font-mono font-bold px-1 py-0.2 rounded border border-emerald-200 whitespace-nowrap flex-shrink-0">
-                    <Key className="w-2 h-2" />
-                    {currentFamilyCode}
+                <div className="flex items-center gap-1 mt-1">
+                  <span className="text-[11px] text-gray-500 font-semibold truncate max-w-[80px]">
+                    {parentSession ? '부모님 댁' : (authSession?.user?.name || '보호자')}
                   </span>
-                )}
+                  {currentFamilyCode && (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] bg-emerald-50 text-emerald-800 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-200 whitespace-nowrap flex-shrink-0">
+                      <Key className="w-2.5 h-2.5" />
+                      {currentFamilyCode}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* 우측 모드 전환 토글 탭 & 히스토리 버튼 & 로그아웃: 가로 1줄 고정 */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+                <button
+                  onClick={() => setActiveTab('parent')}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap active:scale-95 ${
+                    activeTab === 'parent'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>부모님</span>
+                </button>
+
+                <button
+                  onClick={handleSwitchToChild}
+                  className={`relative flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap active:scale-95 ${
+                    activeTab === 'child'
+                      ? 'bg-blue-900 text-white shadow-xs'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <UserCheck className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>자녀</span>
+                  {hasNewAlert && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping" />
+                  )}
+                  {hasNewAlert && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white" />
+                  )}
+                </button>
+              </div>
+
+              {/* 히스토리 바로가기 아이콘 버튼 */}
+              {isAuthorized && (
+                <button
+                  onClick={() => setShowHistoryModal(true)}
+                  className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 active:bg-blue-100 rounded-xl transition"
+                  title="식단 히스토리 목록 보기"
+                >
+                  <History className="w-4 h-4" />
+                </button>
+              )}
+
+              {isAuthorized && (
+                <button
+                  onClick={handleLogout}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 active:bg-gray-200 rounded-xl transition"
+                  title="로그아웃 / 다른 계정 또는 코드로 변경"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
+        </header>
 
-          {/* 우측 모드 전환 토글 탭 & 히스토리 버튼 & 로그아웃: 줄바꿈 없이 가로 1줄 고정 */}
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <div className="flex items-center bg-slate-100 p-0.5 sm:p-1 rounded-xl border border-slate-200">
+        {/* 자녀 구글 로그인 상태일 때: 상단 부모님 초대용 안심 코드 배너 */}
+        {authSession && activeTab === 'child' && childFamilyCode && (
+          <div className="bg-blue-50/90 border-b border-blue-100 py-2.5 px-3.5 w-full">
+            <div className="flex items-center justify-between text-xs text-blue-950 font-medium gap-2">
+              <div className="flex items-center gap-1.5 whitespace-nowrap min-w-0">
+                <span className="font-black text-xs">안심코드:</span>
+                <span className="font-mono font-black text-sm text-blue-700 bg-white px-2 py-0.5 rounded-md border border-blue-200 shadow-xs tracking-wider">
+                  {childFamilyCode}
+                </span>
+              </div>
               <button
-                onClick={() => setActiveTab('parent')}
-                className={`flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${
-                  activeTab === 'parent'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-gray-700 hover:text-gray-900'
-                }`}
+                onClick={() => {
+                  const text = `[안심콩팥케어] 부모님, 식사 전 사진 1장만 찍어주세요! 가족 안심 번호는 [ ${childFamilyCode} ] 입니다.\n접속 주소: ${window.location.origin}`;
+                  navigator.clipboard.writeText(text);
+                  alert('부모님께 보낼 안내 문구와 안심 번호가 복사되었습니다! 카톡에 붙여넣어 주세요.');
+                }}
+                className="text-xs font-black text-blue-700 bg-white px-2.5 py-1 rounded-lg border border-blue-200 shadow-xs active:bg-blue-50 transition whitespace-nowrap flex-shrink-0"
               >
-                <Smartphone className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-                <span>부모님</span>
-              </button>
-
-              <button
-                onClick={handleSwitchToChild}
-                className={`relative flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${
-                  activeTab === 'child'
-                    ? 'bg-blue-900 text-white shadow-sm'
-                    : 'text-gray-700 hover:text-gray-900'
-                }`}
-              >
-                <UserCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-                <span>자녀</span>
-                {hasNewAlert && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping" />
-                )}
-                {hasNewAlert && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white" />
-                )}
+                카톡 공유
               </button>
             </div>
-
-            {/* 히스토리 바로가기 아이콘 버튼 */}
-            {isAuthorized && (
-              <button
-                onClick={() => setShowHistoryModal(true)}
-                className="p-1 sm:p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                title="식단 히스토리 목록 보기"
-              >
-                <History className="w-4 h-4" />
-              </button>
-            )}
-
-            {isAuthorized && (
-              <button
-                onClick={handleLogout}
-                className="p-1 sm:p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
-                title="로그아웃 / 다른 계정 또는 코드로 변경"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            )}
           </div>
-        </div>
-      </header>
-
-      {/* 자녀 구글 로그인 상태일 때: 상단 부모님 초대용 안심 코드 배너 */}
-      {authSession && activeTab === 'child' && childFamilyCode && (
-        <div className="bg-blue-50 border-b border-blue-100 py-2 px-3 sm:px-4 w-full">
-          <div className="max-w-xl mx-auto flex items-center justify-between text-xs text-blue-900 font-medium gap-2">
-            <div className="flex items-center gap-1 whitespace-nowrap min-w-0">
-              <span className="font-bold text-[11px] sm:text-xs">🔑 안심 코드:</span>
-              <span className="font-mono font-black text-xs sm:text-sm text-blue-700 bg-white px-1.5 py-0.5 rounded border border-blue-200 tracking-wider">
-                {childFamilyCode}
-              </span>
-            </div>
-            <button
-              onClick={() => {
-                const text = `[안심콩팥케어] 부모님, 식사 전 사진 1장만 찍어주세요! 가족 안심 번호는 [ ${childFamilyCode} ] 입니다.\n접속 주소: ${window.location.origin}`;
-                navigator.clipboard.writeText(text);
-                alert('부모님께 보낼 안내 문구와 안심 번호가 복사되었습니다! 카톡에 붙여넣어 주세요.');
-              }}
-              className="text-[10px] sm:text-[11px] font-bold text-blue-600 hover:underline bg-white px-2 py-1 rounded-md border border-blue-200 whitespace-nowrap flex-shrink-0"
-            >
-              카톡으로 부모님께 보내기
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 실시간 알림 띠 */}
-      {hasNewAlert && activeTab === 'parent' && (
-        <div
-          onClick={handleSwitchToChild}
-          className="bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 px-4 flex items-center justify-center gap-2 cursor-pointer transition shadow-inner font-semibold"
-        >
-          <Bell className="w-3.5 h-3.5 animate-bounce" />
-          <span>부모님의 새 식단 분석이 도착했습니다. [자녀 모드에서 신호등 보기]</span>
-        </div>
-      )}
-
-      {/* 본문 콘텐츠: 모바일 좌우 패딩을 3(12px)으로 컴팩트하게 조정 */}
-      <section className="flex-1 w-full max-w-xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-        {activeTab === 'parent' ? (
-          <ParentView onAnalysisComplete={handleAnalysisComplete} />
-        ) : (
-          <ChildView
-            analysis={latestAnalysis}
-            onUpdateAnalysis={(updated) => setLatestAnalysis(updated)}
-            onSwitchToParent={() => setActiveTab('parent')}
-            onOpenHistory={() => setShowHistoryModal(true)}
-          />
         )}
-      </section>
 
-      {/* 면책 조항 */}
-      <footer className="w-full bg-slate-100 border-t border-slate-200 py-3 px-4 text-center text-[10px] sm:text-[11px] text-gray-600 leading-tight">
-        <p className="max-w-md mx-auto">
-          ⚠️ <strong>안내</strong>: 본 서비스는 의료기기 또는 질병 치료·진단 도구가 아니며, 식단 선택을 돕기 위한 보조 가이드입니다. 정확한 영양 및 복약 관리는 반드시 신장내과 주치의 및 임상영양사와 상담하십시오.
-        </p>
-      </footer>
+        {/* 실시간 알림 띠 */}
+        {hasNewAlert && activeTab === 'parent' && (
+          <div
+            onClick={handleSwitchToChild}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 px-3.5 flex items-center justify-center gap-2 cursor-pointer transition shadow-inner font-bold"
+          >
+            <Bell className="w-3.5 h-3.5 animate-bounce" />
+            <span>부모님의 새 식단 분석 도착! [자녀 모드 확인]</span>
+          </div>
+        )}
+
+        {/* 모바일 화면 꽉 채우는 본문 콘텐츠 */}
+        <section className="flex-1 w-full px-3.5 py-3.5 pb-8 space-y-3">
+          {activeTab === 'parent' ? (
+            <ParentView onAnalysisComplete={handleAnalysisComplete} />
+          ) : (
+            <ChildView
+              analysis={latestAnalysis}
+              onUpdateAnalysis={(updated) => setLatestAnalysis(updated)}
+              onSwitchToParent={() => setActiveTab('parent')}
+              onOpenHistory={() => setShowHistoryModal(true)}
+            />
+          )}
+        </section>
+
+        {/* 하단 면책 조항 */}
+        <footer className="w-full bg-slate-100 border-t border-slate-200 py-3.5 px-4 text-center text-[11px] text-gray-500 leading-normal">
+          <p>
+            ⚠️ <strong>안내</strong>: 본 서비스는 의료기기나 진단 도구가 아니며, 신장 질환 식단 선택을 돕는 보조 가이드입니다. 정확한 영양 관리는 주치의와 상담하십시오.
+          </p>
+        </footer>
+      </div>
     </main>
   );
 }
