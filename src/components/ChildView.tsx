@@ -13,7 +13,9 @@ import {
   Calendar, 
   Sparkles,
   History,
-  ChevronRight
+  ChevronRight,
+  ZoomIn,
+  X
 } from 'lucide-react';
 import { MealAnalysisResult, FoodItem, RiskLevel } from '@/types/meal';
 
@@ -35,6 +37,7 @@ export default function ChildView({
   const [editName, setEditName] = useState('');
   const [editRisk, setEditRisk] = useState<RiskLevel>('caution');
   const [showPdfModal, setShowPdfModal] = useState(false);
+  const [showFullImageModal, setShowFullImageModal] = useState(false); // 전체 사진 모달
 
   if (!analysis) {
     return (
@@ -138,6 +141,43 @@ export default function ChildView({
 
   return (
     <div className="w-full space-y-3 pb-24">
+      {/* 1. 원본 전체 사진 확대 모달 */}
+      {showFullImageModal && analysis.imageUrl && (
+        <div 
+          onClick={() => setShowFullImageModal(false)}
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col justify-between p-4 animate-in fade-in"
+        >
+          {/* 상단 닫기 바 */}
+          <div className="w-full flex items-center justify-between text-white py-2 z-10">
+            <span className="text-xs font-medium text-gray-300">
+              {new Date(analysis.timestamp).toLocaleString()} 식단 사진
+            </span>
+            <button
+              onClick={() => setShowFullImageModal(false)}
+              className="p-2 bg-white/20 hover:bg-white/30 rounded-full text-white transition flex items-center justify-center"
+              title="닫기"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* 중앙 전체 사진 뷰 (원본 비율 유지) */}
+          <div className="flex-1 flex items-center justify-center w-full max-h-[82vh] overflow-hidden">
+            <img
+              src={analysis.imageUrl}
+              alt="전체 식단 사진"
+              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+
+          {/* 하단 닫기 안내 문구 */}
+          <div className="text-center py-2 text-gray-400 text-xs">
+            화면 아무 곳이나 누르면 닫힙니다
+          </div>
+        </div>
+      )}
+
       {/* 식단 모아보기 빠른 바로가기 바 */}
       {onOpenHistory && (
         <div 
@@ -185,18 +225,28 @@ export default function ChildView({
         </div>
       </div>
 
-      {/* 촬영된 원본 사진 및 실시간 AI 진단 */}
+      {/* 촬영된 사진 (클릭 시 전체 화면 확대) */}
       {analysis.imageUrl && (
-        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
+        <div 
+          onClick={() => setShowFullImageModal(true)}
+          className="relative bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden cursor-pointer group hover:border-blue-400 transition"
+        >
           <div className="relative aspect-[16/10] w-full bg-gray-100">
             <img
               src={analysis.imageUrl}
               alt="식단 사진"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover group-hover:scale-102 transition duration-200"
             />
+            {/* 상단 안내 배지 */}
             <div className="absolute top-2.5 left-2.5 bg-black/65 backdrop-blur-md text-white text-[11px] px-2.5 py-1 rounded-full flex items-center gap-1.5 font-semibold">
               <Sparkles className="w-3 h-3 text-amber-300 flex-shrink-0" />
               <span>부모님이 촬영하신 식탁 사진</span>
+            </div>
+
+            {/* 우측 하단 전체화면 확대 힌트 버튼 */}
+            <div className="absolute bottom-2.5 right-2.5 bg-black/70 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-md group-hover:bg-blue-600 transition">
+              <ZoomIn className="w-3.5 h-3.5" />
+              <span>터치해서 전체 사진 보기</span>
             </div>
           </div>
         </div>
@@ -204,7 +254,7 @@ export default function ChildView({
 
       {/* 1개 통합 테이블(단일 카드형 표) 구조: 모바일 화면 꽉 채우기 */}
       <div className="w-full bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        {/* 테이블 헤더 영역: 좁은 화면에서도 줄바꿈 없이 딱 맞춤 */}
+        {/* 테이블 헤더 영역 */}
         <div className="px-3.5 py-2.5 border-b border-gray-100 flex items-center justify-between bg-slate-50/80">
           <div className="flex items-center gap-1.5">
             <h3 className="font-extrabold text-gray-900 text-sm sm:text-base whitespace-nowrap">
