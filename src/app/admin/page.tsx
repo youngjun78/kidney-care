@@ -64,10 +64,10 @@ export default function AdminDashboardPage() {
   const [searchFamily, setSearchFamily] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'families' | 'meals'>('overview');
 
-  // 관리자 키 인증 확인 (마스터 비밀번호로만 엄격 인증)
+  // 관리자 키 인증 확인
   useEffect(() => {
     const savedAdminKey = sessionStorage.getItem('kidney_admin_auth');
-    if (savedAdminKey === 'admin2026' || savedAdminKey === '780104') {
+    if (savedAdminKey) {
       setIsAdminAuthenticated(true);
     }
   }, []);
@@ -97,15 +97,24 @@ export default function AdminDashboardPage() {
     }
   }, [isAdminAuthenticated]);
 
-  const handleAdminKeySubmit = (e: React.FormEvent) => {
+  const handleAdminKeySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // 1단계 관리자 기본 패스코드 (추후 환경변수나 구글 화이트리스트 확장)
-    if (adminKey.trim() === 'admin2026' || adminKey.trim() === '780104') {
-      sessionStorage.setItem('kidney_admin_auth', 'admin2026');
-      setIsAdminAuthenticated(true);
-      setAuthError('');
-    } else {
-      setAuthError('올바른 관리자 마스터 키를 입력해주세요.');
+    setAuthError('');
+    try {
+      const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: adminKey }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        sessionStorage.setItem('kidney_admin_auth', 'authenticated');
+        setIsAdminAuthenticated(true);
+      } else {
+        setAuthError(data.error || '올바른 관리자 마스터 키를 입력해주세요.');
+      }
+    } catch {
+      setAuthError('인증 확인 중 오류가 발생했습니다.');
     }
   };
 
