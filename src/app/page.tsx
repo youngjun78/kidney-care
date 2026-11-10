@@ -405,10 +405,10 @@ export default function Home() {
                       ? `${window.location.origin}?invite=${data.token}`
                       : `${window.location.origin}`;
 
-                    const text = `[안심콩팥케어] 부모님! 식사하시기 전에 사진 1장만 찍어주세요 😊\n아래 링크를 누르시면 번호 입력 없이 바로 연결됩니다.\n👉 ${inviteUrl}\n(가족 안심 번호: ${childFamilyCode})`;
+                    const text = `[안심콩팥케어] 부모님! 식사하시기 전에 사진 1장만 찍어주세요 😊\n\n1. 평소 쓰시는 인터넷 브라우저(삼성인터넷/크롬)로 접속하시려면:\n👉 ${window.location.origin}\n(안심 번호 [ ${childFamilyCode} ]를 딱 1번만 입력하시면 다음부터는 번호 없이 바로 켜집니다!)\n\n2. 카카오톡으로 바로 열기:\n👉 ${inviteUrl}`;
                     
                     await navigator.clipboard.writeText(text);
-                    alert('부모님 전용 1초 안심 초대장이 복사되었습니다!\n카카오톡에 붙여넣어 부모님께 보내주세요.');
+                    alert('부모님 전용 다정한 안내 문구와 안심 번호가 복사되었습니다!\n카카오톡에 붙여넣어 부모님께 보내주세요.');
                   } catch (e) {
                     console.error(e);
                     alert('초대장 생성 중 오류가 발생했습니다.');

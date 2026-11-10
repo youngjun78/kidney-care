@@ -11,6 +11,7 @@ interface AuthGateModalProps {
 export default function AuthGateModal({ onParentConnect }: AuthGateModalProps) {
   const [tab, setTab] = useState<'select' | 'parent' | 'child'>('select');
   const [parentCode, setParentCode] = useState('');
+  const [rememberDevice, setRememberDevice] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [validatingCode, setValidatingCode] = useState(false);
@@ -36,7 +37,7 @@ export default function AuthGateModal({ onParentConnect }: AuthGateModalProps) {
         return;
       }
 
-      // 검증 성공
+      // 검증 성공 -> 상위 핸들러로 전달
       onParentConnect(cleanCode);
     } catch (err: any) {
       console.error(err);
@@ -169,7 +170,7 @@ export default function AuthGateModal({ onParentConnect }: AuthGateModalProps) {
             </div>
 
             <div className="space-y-1 text-left">
-              <label className="text-xs font-bold text-gray-700">안심 번호 6자리</label>
+              <label className="text-xs font-bold text-gray-700">가족 안심 번호</label>
               <input
                 type="text"
                 autoFocus
@@ -177,7 +178,7 @@ export default function AuthGateModal({ onParentConnect }: AuthGateModalProps) {
                 value={parentCode}
                 onChange={(e) => setParentCode(e.target.value.toUpperCase())}
                 placeholder="6자리 숫자 입력"
-                className="w-full text-center text-2xl font-black tracking-widest py-3 px-4 rounded-xl border-2 border-gray-300 focus:border-emerald-500 focus:outline-none uppercase disabled:bg-gray-100"
+                className="w-full text-center text-2xl font-black tracking-widest py-3 px-4 rounded-xl border-2 border-emerald-400 focus:border-emerald-600 focus:outline-none uppercase disabled:bg-gray-100 shadow-xs"
                 maxLength={8}
               />
               {errorMessage && (
@@ -186,6 +187,24 @@ export default function AuthGateModal({ onParentConnect }: AuthGateModalProps) {
                 </p>
               )}
             </div>
+
+            {/* 이 휴대폰을 부모님 전용 폰으로 안전하게 기억하기 체크박스 */}
+            <label className="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-50/80 border border-emerald-200 cursor-pointer select-none text-left">
+              <input
+                type="checkbox"
+                checked={rememberDevice}
+                onChange={(e) => setRememberDevice(e.target.checked)}
+                className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 cursor-pointer accent-emerald-600"
+              />
+              <div className="flex-1">
+                <span className="text-xs font-black text-emerald-950 block">
+                  이 휴대폰을 부모님 폰으로 안전하게 기억하기
+                </span>
+                <span className="text-[11px] text-emerald-800 font-medium">
+                  다음부터 번호 입력 없이 즉시 카메라가 열립니다
+                </span>
+              </div>
+            </label>
 
             <button
               type="submit"
