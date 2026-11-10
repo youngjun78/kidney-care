@@ -7,7 +7,7 @@ import ChildView from '@/components/ChildView';
 import AuthGateModal from '@/components/AuthGateModal';
 import MealHistoryModal from '@/components/MealHistoryModal';
 import { MealAnalysisResult, UserSession } from '@/types/meal';
-import { Heart, Bell, Smartphone, UserCheck, Key, LogOut, History } from 'lucide-react';
+import { Heart, Bell, Smartphone, UserCheck, Key, LogOut, History, MessageCircleQuestion } from 'lucide-react';
 
 export default function Home() {
   const { data: authSession, status } = useSession();
@@ -438,7 +438,10 @@ export default function Home() {
         {/* 모바일 화면 꽉 채우는 본문 콘텐츠 (하단 여백 슬림화) */}
         <section className="flex-1 w-full px-3.5 py-3 pb-3 space-y-3">
           {activeTab === 'parent' ? (
-            <ParentView onAnalysisComplete={handleAnalysisComplete} />
+            <ParentView 
+              familyCode={currentFamilyCode}
+              onAnalysisComplete={handleAnalysisComplete} 
+            />
           ) : (
             <ChildView
               analysis={latestAnalysis}
@@ -452,9 +455,19 @@ export default function Home() {
           )}
         </section>
 
-        {/* 하단 면책 조항 (패딩 축소) */}
-        <footer className="w-full bg-slate-100 border-t border-slate-200 py-2.5 px-3.5 text-center text-[10px] text-gray-500 leading-normal">
-          <p>
+        {/* 하단 면책 조항 & 환우 가족 피드백 창구 */}
+        <footer className="w-full bg-slate-100 border-t border-slate-200 py-3 px-3.5 text-center text-[10px] text-gray-500 space-y-2">
+          <div className="flex items-center justify-center gap-1.5 text-emerald-800 bg-emerald-50 border border-emerald-200/80 py-1.5 px-3 rounded-xl max-w-xs mx-auto">
+            <MessageCircleQuestion className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+            <span className="font-bold text-[11px]">환우 가족 의견 · 기능 제안</span>
+            <a
+              href="mailto:youngjun78@gmail.com?subject=[안심콩팥케어] 환우 가족 의견 및 문의"
+              className="ml-auto underline font-black text-emerald-700 hover:text-emerald-900"
+            >
+              보내기 →
+            </a>
+          </div>
+          <p className="leading-normal">
             ⚠️ <strong>안내</strong>: 본 서비스는 의료기기나 진단 도구가 아니며, 신장 질환 식단 선택을 돕는 보조 가이드입니다. 정확한 영양 관리는 주치의와 상담하십시오.
           </p>
         </footer>

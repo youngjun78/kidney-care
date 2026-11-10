@@ -7,10 +7,11 @@ import confetti from 'canvas-confetti';
 import { MealAnalysisResult } from '@/types/meal';
 
 interface ParentViewProps {
+  familyCode?: string;
   onAnalysisComplete: (result: MealAnalysisResult, imagePreview: string) => void;
 }
 
-export default function ParentView({ onAnalysisComplete }: ParentViewProps) {
+export default function ParentView({ familyCode, onAnalysisComplete }: ParentViewProps) {
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [preview, setPreview] = useState<string | null>(null);
@@ -52,6 +53,7 @@ export default function ParentView({ onAnalysisComplete }: ParentViewProps) {
             body: JSON.stringify({
               imageBase64: base64Data,
               mimeType: 'image/jpeg',
+              familyCode: familyCode || undefined,
             }),
           });
 

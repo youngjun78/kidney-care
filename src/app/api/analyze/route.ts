@@ -1,14 +1,43 @@
 import { NextResponse } from 'next/server';
 import { MealAnalysisResult } from '@/types/meal';
+import { supabase } from '@/lib/supabase';
 
 export const maxDuration = 60;
 
+// 하루 무료 분석 허용 한도
+const DAILY_FREE_LIMIT = 3;
+
 export async function POST(req: Request) {
   try {
-    const { imageBase64, mimeType = 'image/jpeg' } = await req.json();
+    const { imageBase64, mimeType = 'image/jpeg', familyCode } = await req.json();
 
     if (!imageBase64) {
       return NextResponse.json({ error: '이미지 데이터가 없습니다.' }, { status: 400 });
+    }
+
+    // 1. 하루 무료 분석 횟수 제한 체크 (familyCode 기준)
+    if (familyCode && supabase) {
+      // 오늘 00:00:00 (KST 기준 날짜 시작 계산)
+      const now = new Date();
+      // KST는 UTC+9
+      const kstOffset = 9 * 60 * 60 * 1000;
+      const kstDate = new Date(now.getTime() + kstOffset);
+      const startOfTodayKst = new Date(Date.UTC(kstDate.getUTCFullYear(), kstDate.getUTCMonth(), kstDate.getUTCDate(), 0, 0, 0) - kstOffset);
+
+      const { count, error: countError } = await supabase
+        .from('meals')
+        .select('id', { count: 'exact', head: true })
+        .eq('family_code', familyCode)
+        .gte('created_at', startOfTodayKst.toISOString());
+
+      if (!countError && typeof count === 'number' && count >= DAILY_FREE_LIMIT) {
+        return NextResponse.json({
+          error: `오늘 무료 식단 분석 횟수(${DAILY_FREE_LIMIT}회)를 모두 사용하셨습니다. 내일 오전 0시에 다시 충전됩니다! (정식 오픈 시 무제한 제공 예정)`,
+          limitReached: true,
+          dailyLimit: DAILY_FREE_LIMIT,
+          currentCount: count,
+        }, { status: 429 });
+      }
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
