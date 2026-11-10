@@ -64,13 +64,13 @@ export default function AdminDashboardPage() {
   const [searchFamily, setSearchFamily] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'families' | 'meals'>('overview');
 
-  // 관리자 키 인증 확인 (간편 보안 패스코드 & 세션)
+  // 관리자 키 인증 확인 (마스터 비밀번호로만 엄격 인증)
   useEffect(() => {
     const savedAdminKey = sessionStorage.getItem('kidney_admin_auth');
-    if (savedAdminKey === 'admin2026' || session?.user?.email?.includes('jun') || session?.user?.email?.includes('admin')) {
+    if (savedAdminKey === 'admin2026' || savedAdminKey === '780104') {
       setIsAdminAuthenticated(true);
     }
-  }, [session]);
+  }, []);
 
   const fetchAdminData = async () => {
     try {
@@ -151,21 +151,6 @@ export default function AdminDashboardPage() {
               관제 콘솔 로그인
             </button>
           </form>
-
-          {session?.user && (
-            <div className="pt-2 border-t border-slate-700/60 text-center">
-              <span className="text-xs text-slate-400 block mb-2">구글 계정: {session.user.email}</span>
-              <button
-                onClick={() => {
-                  sessionStorage.setItem('kidney_admin_auth', 'admin2026');
-                  setIsAdminAuthenticated(true);
-                }}
-                className="text-xs text-emerald-400 hover:underline font-bold"
-              >
-                이 구글 계정으로 즉시 승인 진입
-              </button>
-            </div>
-          )}
         </div>
       </div>
     );
