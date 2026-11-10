@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useSession, signIn } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { 
-  ShieldCheck, 
   Users, 
   UtensilsCrossed, 
   AlertTriangle, 
   ShieldAlert, 
+  ShieldCheck,
   Activity, 
   RefreshCw, 
   Lock, 
@@ -17,7 +17,13 @@ import {
   ExternalLink,
   ChevronRight,
   TrendingUp,
-  FileSpreadsheet
+  Download,
+  Edit3,
+  Trash2,
+  X,
+  Filter,
+  Check,
+  Sparkles
 } from 'lucide-react';
 
 interface AdminStats {
@@ -38,7 +44,7 @@ interface FamilyItem {
   mealCount: number;
 }
 
-interface RecentMeal {
+interface MealItem {
   id: string;
   family_code: string;
   image_url?: string;
@@ -47,10 +53,12 @@ interface RecentMeal {
   worst_risk_nutrient: string;
   created_at: string;
   foods: any[];
+  friendly_message?: string;
+  clinical_summary?: string;
 }
 
 export default function AdminDashboardPage() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [adminKey, setAdminKey] = useState('');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [authError, setAuthError] = useState('');
@@ -60,11 +68,27 @@ export default function AdminDashboardPage() {
   const [riskDist, setRiskDist] = useState<{ danger: number; caution: number; safe: number }>({ danger: 0, caution: 0, safe: 0 });
   const [topNutrients, setTopNutrients] = useState<{ nutrient: string; count: number }[]>([]);
   const [families, setFamilies] = useState<FamilyItem[]>([]);
-  const [recentMeals, setRecentMeals] = useState<RecentMeal[]>([]);
-  const [searchFamily, setSearchFamily] = useState('');
+  const [recentMeals, setRecentMeals] = useState<MealItem[]>([]);
+  
+  // 탭 및 필터 상태
   const [activeTab, setActiveTab] = useState<'overview' | 'families' | 'meals'>('overview');
+  const [searchFamily, setSearchFamily] = useState('');
+  const [selectedRiskFilter, setSelectedRiskFilter] = useState<'all' | 'danger' | 'caution' | 'safe'>('all');
+  const [selectedFamilyFilter, setSelectedFamilyFilter] = useState<string>('all');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
-  // 관리자 키 인증 확인
+  // 관리자 보정/상세 모달 상태
+  const [editingMeal, setEditingMeal] = useState<MealItem | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editRisk, setEditRisk] = useState<'danger' | 'caution' | 'safe'>('caution');
+  const [editNutrient, setEditNutrient] = useState('');
+  const [editAdvice, setEditAdvice] = useState('');
+  const [savingMeal, setSavingMeal] = useState(false);
+
+  // 가족 상세 팝업 상태
+  const [selectedFamilyDetail, setSelectedFamilyDetail] = useState<FamilyItem | null>(null);
+
+  // 관리자 인증 세션 확인
   useEffect(() => {
     const savedAdminKey = sessionStorage.getItem('kidney_admin_auth');
     if (savedAdminKey) {
@@ -97,6 +121,7 @@ export default function AdminDashboardPage() {
     }
   }, [isAdminAuthenticated]);
 
+  // 관리자 로그인
   const handleAdminKeySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
@@ -123,7 +148,98 @@ export default function AdminDashboardPage() {
     setIsAdminAuthenticated(false);
   };
 
-  // 1. 관리자 인증 전 로그인 화면
+  // 식단 수정 모달 오픈
+  const openEditModal = (meal: MealItem) => {
+    setEditingMeal(meal);
+    setEditTitle(meal.summary_title);
+    setEditRisk(meal.overall_risk);
+    setEditNutrient(meal.worst_risk_nutrient);
+    setEditAdvice(meal.clinical_summary || '');
+  };
+
+  // 식단 수정 저장
+  const handleSaveMealCorrection = async () => {
+    if (!editingMeal) return;
+    try {
+      setSavingMeal(true);
+      const res = await fetch('/api/admin/meals', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mealId: editingMeal.id,
+          summaryTitle: editTitle,
+          overallRisk: editRisk,
+          worstRiskNutrient: editNutrient,
+          foods: editingMeal.foods,
+          friendlyMessage: editingMeal.friendly_message,
+          clinicalSummary: editAdvice,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('식단 분석 정보가 성공적으로 보정되었습니다.');
+        setEditingMeal(null);
+        fetchAdminData();
+      } else {
+        alert(data.error || '수정 실패');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('식단 수정 중 오류가 발생했습니다.');
+    } finally {
+      setSavingMeal(false);
+    }
+  };
+
+  // 식단 삭제
+  const handleDeleteMeal = async (mealId: string) => {
+    if (!confirm('정말 이 식단 기록을 삭제하시겠습니까? (복구할 수 없습니다)')) return;
+    try {
+      const res = await fetch(`/api/admin/meals?mealId=${mealId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('식단이 삭제되었습니다.');
+        if (editingMeal?.id === mealId) setEditingMeal(null);
+        fetchAdminData();
+      }
+    } catch (err) {
+      console.error(err);
+      alert('삭제 중 오류 발생');
+    }
+  };
+
+  // 엑셀/CSV 내보내기 기능
+  const exportToCSV = (targetMeals: MealItem[]) => {
+    if (targetMeals.length === 0) {
+      alert('내보낼 식단 데이터가 없습니다.');
+      return;
+    }
+
+    const headers = ['식단ID', '가족코드', '기록일시', '식단명', '위험등급', '주의영양소', '반찬목록'];
+    const rows = targetMeals.map(m => [
+      m.id,
+      m.family_code,
+      new Date(m.created_at).toLocaleString(),
+      `"${(m.summary_title || '').replace(/"/g, '""')}"`,
+      m.overall_risk,
+      m.worst_risk_nutrient,
+      `"${(m.foods?.map((f: any) => f.name).join(', ') || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `신장케어_식단기록_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // 로그인 전 게이트
   if (!isAdminAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -165,6 +281,17 @@ export default function AdminDashboardPage() {
     );
   }
 
+  // 필터링 적용된 식단 목록
+  const filteredMeals = recentMeals.filter((m) => {
+    if (selectedRiskFilter !== 'all' && m.overall_risk !== selectedRiskFilter) return false;
+    if (selectedFamilyFilter !== 'all' && m.family_code !== selectedFamilyFilter) return false;
+    return true;
+  }).sort((a, b) => {
+    const timeA = new Date(a.created_at).getTime();
+    const timeB = new Date(b.created_at).getTime();
+    return sortOrder === 'newest' ? timeB - timeA : timeA - timeB;
+  });
+
   const filteredFamilies = families.filter((f) => 
     f.family_code.toLowerCase().includes(searchFamily.toLowerCase()) ||
     (f.child_email && f.child_email.toLowerCase().includes(searchFamily.toLowerCase())) ||
@@ -185,16 +312,24 @@ export default function AdminDashboardPage() {
                 안심콩팥케어 Admin
               </span>
               <span className="text-[10px] bg-emerald-950 border border-emerald-500/50 text-emerald-300 font-bold px-1.5 py-0.5 rounded">
-                Live Console
+                v2.0 Operations
               </span>
             </div>
             <span className="text-[11px] text-slate-400 font-medium">
-              신장 질환 실시간 식단 관제 센터
+              신장 질환 실시간 식단 관제 & 휴먼 인더루프 센터
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportToCSV(recentMeals)}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-900/50 hover:bg-emerald-800/60 text-xs font-bold text-emerald-300 border border-emerald-700/60 transition shadow-xs"
+            title="전체 식단 CSV 다운로드"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>식단 데이터 CSV 추출</span>
+          </button>
           <button
             onClick={fetchAdminData}
             disabled={loading}
@@ -251,7 +386,7 @@ export default function AdminDashboardPage() {
               : 'border-transparent text-slate-400 hover:text-slate-200'
           }`}
         >
-          🥗 실시간 식단 분석 피드 ({stats?.totalMeals || 0})
+          🥗 식단 피드 & AI 보정 검수 ({recentMeals.length})
         </button>
       </nav>
 
@@ -262,7 +397,6 @@ export default function AdminDashboardPage() {
           <div className="space-y-6 animate-in fade-in">
             {/* KPI 메트릭 카드 4종 */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              {/* 총 등록 가족 수 */}
               <div className="bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
                   <span>총 등록 가족 수</span>
@@ -275,7 +409,6 @@ export default function AdminDashboardPage() {
                 <span className="text-[11px] text-emerald-400 font-medium">연동 완료 가족 100%</span>
               </div>
 
-              {/* 오늘 등록된 식단 */}
               <div className="bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
                   <span>오늘 업로드 식단</span>
@@ -288,7 +421,6 @@ export default function AdminDashboardPage() {
                 <span className="text-[11px] text-slate-400 font-medium">누적 {stats?.totalMeals || 0}끼니</span>
               </div>
 
-              {/* 위험 신호등 감지 식단 */}
               <div className="bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
                   <span>위험(섭취주의) 감지</span>
@@ -301,7 +433,6 @@ export default function AdminDashboardPage() {
                 <span className="text-[11px] text-rose-400 font-medium">즉시 식이 조절 권고 식단</span>
               </div>
 
-              {/* 주의(양 조절) 감지 */}
               <div className="bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
                   <span>주의(양 조절) 식단</span>
@@ -317,7 +448,6 @@ export default function AdminDashboardPage() {
 
             {/* 중간 2열: 위험도 분포 비주얼 바 & 주요 주의 영양소 순위 */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* 식단 신호등 비율 */}
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-extrabold text-sm sm:text-base text-white flex items-center gap-2">
@@ -327,7 +457,6 @@ export default function AdminDashboardPage() {
                   <span className="text-xs text-slate-400">전체 {stats?.totalMeals || 0}건 기준</span>
                 </div>
 
-                {/* 3단 비율 바 */}
                 <div className="w-full h-4 bg-slate-800 rounded-full overflow-hidden flex">
                   <div 
                     style={{ width: `${stats?.totalMeals ? (riskDist.danger / stats.totalMeals) * 100 : 0}%` }}
@@ -371,7 +500,6 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* 가장 빈번한 주의 영양소 순위 */}
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
                 <h3 className="font-extrabold text-sm sm:text-base text-white flex items-center gap-2">
                   <Activity className="w-4 h-4 text-cyan-400" />
@@ -403,7 +531,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* 최근 등록된 실시간 식단 5건 미리보기 피드 */}
+            {/* 최근 등록된 실시간 식단 5건 */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-extrabold text-sm sm:text-base text-white">
@@ -446,15 +574,24 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
-                      meal.overall_risk === 'danger'
-                        ? 'bg-rose-950 text-rose-300 border border-rose-800'
-                        : meal.overall_risk === 'caution'
-                        ? 'bg-amber-950 text-amber-300 border border-amber-800'
-                        : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                    }`}>
-                      {meal.overall_risk === 'danger' ? '위험' : meal.overall_risk === 'caution' ? '주의' : '안전'}
-                    </span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
+                        meal.overall_risk === 'danger'
+                          ? 'bg-rose-950 text-rose-300 border border-rose-800'
+                          : meal.overall_risk === 'caution'
+                          ? 'bg-amber-950 text-amber-300 border border-amber-800'
+                          : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                      }`}>
+                        {meal.overall_risk === 'danger' ? '위험' : meal.overall_risk === 'caution' ? '주의' : '안전'}
+                      </span>
+                      <button
+                        onClick={() => openEditModal(meal)}
+                        className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
+                        title="운영자 직접 보정"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -465,8 +602,7 @@ export default function AdminDashboardPage() {
         {/* 2. 등록 가족 관리 탭 */}
         {activeTab === 'families' && (
           <div className="space-y-4 animate-in fade-in">
-            {/* 검색 바 */}
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="relative flex-1 max-w-md">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
@@ -493,6 +629,7 @@ export default function AdminDashboardPage() {
                       <th className="py-3 px-4">구글 이메일</th>
                       <th className="py-3 px-4">누적 식사 수</th>
                       <th className="py-3 px-4">등록 일시</th>
+                      <th className="py-3 px-4 text-right">식단 조회</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800 text-slate-300">
@@ -515,6 +652,17 @@ export default function AdminDashboardPage() {
                         <td className="py-3.5 px-4 text-slate-500 text-xs">
                           {new Date(fam.created_at).toLocaleDateString()}
                         </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <button
+                            onClick={() => {
+                              setSelectedFamilyFilter(fam.family_code);
+                              setActiveTab('meals');
+                            }}
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-950 hover:text-emerald-300 border border-slate-700 hover:border-emerald-700 rounded-lg text-xs font-bold transition"
+                          >
+                            식단 피드 확인 →
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -524,63 +672,244 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* 3. 전체 식단 피드 탭 */}
+        {/* 3. 전체 식단 피드 & AI 보정 탭 */}
         {activeTab === 'meals' && (
           <div className="space-y-4 animate-in fade-in">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm sm:text-base font-bold text-white">
-                전체 업로드 식단 갤러리 (총 {recentMeals.length}건)
-              </h3>
+            {/* 상단 필터 & 툴바 바 */}
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-slate-400 flex items-center gap-1">
+                  <Filter className="w-3.5 h-3.5" /> 등급 필터:
+                </span>
+                {(['all', 'danger', 'caution', 'safe'] as const).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setSelectedRiskFilter(r)}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                      selectedRiskFilter === r
+                        ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {r === 'all' ? '전체' : r === 'danger' ? '위험 🔴' : r === 'caution' ? '주의 🟡' : '안전 🟢'}
+                  </button>
+                ))}
+
+                {selectedFamilyFilter !== 'all' && (
+                  <div className="flex items-center gap-1 bg-blue-950 text-blue-300 border border-blue-800 px-2.5 py-1 rounded-xl text-xs font-bold">
+                    <span>코드: {selectedFamilyFilter}</span>
+                    <button onClick={() => setSelectedFamilyFilter('all')} className="hover:text-white">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <select
+                  value={sortOrder}
+                  onChange={(e: any) => setSortOrder(e.target.value)}
+                  className="bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1.5 rounded-xl focus:outline-none"
+                >
+                  <option value="newest">최신순</option>
+                  <option value="oldest">오래된순</option>
+                </select>
+
+                <button
+                  onClick={() => exportToCSV(filteredMeals)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-xs rounded-xl shadow-xs transition"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>필터링된 목록 CSV ({filteredMeals.length})</span>
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recentMeals.map((meal) => (
-                <div key={meal.id} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg flex flex-col">
-                  {meal.image_url ? (
-                    <div className="aspect-[16/10] w-full bg-slate-950 overflow-hidden relative">
-                      <img
-                        src={meal.image_url}
-                        alt="식단 사진"
-                        className="w-full h-full object-cover"
-                      />
-                      <span className={`absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full text-xs font-black shadow-md ${
-                        meal.overall_risk === 'danger'
-                          ? 'bg-rose-600 text-white'
-                          : meal.overall_risk === 'caution'
-                          ? 'bg-amber-500 text-slate-950'
-                          : 'bg-emerald-500 text-slate-950'
-                      }`}>
-                        {meal.overall_risk === 'danger' ? '위험' : meal.overall_risk === 'caution' ? '주의' : '안전'}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="aspect-[16/10] w-full bg-slate-800 flex items-center justify-center text-slate-600">
-                      <UtensilsCrossed className="w-10 h-10" />
-                    </div>
-                  )}
+            {/* 식단 피드 그리드 */}
+            {filteredMeals.length === 0 ? (
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl py-16 text-center space-y-2">
+                <UtensilsCrossed className="w-10 h-10 text-slate-600 mx-auto" />
+                <h4 className="text-slate-400 font-bold text-sm">해당 조건의 식단이 없습니다.</h4>
+                <button
+                  onClick={() => {
+                    setSelectedRiskFilter('all');
+                    setSelectedFamilyFilter('all');
+                  }}
+                  className="text-xs text-emerald-400 font-bold hover:underline"
+                >
+                  필터 초기화
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredMeals.map((meal) => (
+                  <div key={meal.id} className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl overflow-hidden shadow-lg flex flex-col justify-between transition">
+                    <div>
+                      {meal.image_url ? (
+                        <div className="aspect-[16/10] w-full bg-slate-950 overflow-hidden relative group">
+                          <img
+                            src={meal.image_url}
+                            alt="식단 사진"
+                            className="w-full h-full object-cover group-hover:scale-102 transition"
+                          />
+                          <span className={`absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full text-xs font-black shadow-md ${
+                            meal.overall_risk === 'danger'
+                              ? 'bg-rose-600 text-white'
+                              : meal.overall_risk === 'caution'
+                              ? 'bg-amber-500 text-slate-950'
+                              : 'bg-emerald-500 text-slate-950'
+                          }`}>
+                            {meal.overall_risk === 'danger' ? '위험' : meal.overall_risk === 'caution' ? '주의' : '안전'}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="aspect-[16/10] w-full bg-slate-800 flex items-center justify-center text-slate-600">
+                          <UtensilsCrossed className="w-10 h-10" />
+                        </div>
+                      )}
 
-                  <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-[11px] text-slate-400">
-                        <span className="font-mono text-emerald-400 font-bold">코드: {meal.family_code}</span>
-                        <span>{new Date(meal.created_at).toLocaleDateString()}</span>
+                      <div className="p-4 space-y-2">
+                        <div className="flex items-center justify-between text-[11px] text-slate-400">
+                          <span className="font-mono text-emerald-400 font-bold">코드: {meal.family_code}</span>
+                          <span>{new Date(meal.created_at).toLocaleString()}</span>
+                        </div>
+                        <h4 className="font-black text-sm text-white line-clamp-1">{meal.summary_title}</h4>
+                        <p className="text-xs text-rose-400 font-medium">
+                          주의 영양소: {meal.worst_risk_nutrient}
+                        </p>
+
+                        <div className="pt-1.5 border-t border-slate-800/80 text-[11px] text-slate-300">
+                          <span className="text-slate-500 block mb-0.5">인식된 메뉴:</span>
+                          <span className="line-clamp-2">{meal.foods?.map((f: any) => `${f.name}(${f.riskLevel})`).join(', ') || '분석 완료'}</span>
+                        </div>
                       </div>
-                      <h4 className="font-black text-sm text-white line-clamp-1">{meal.summary_title}</h4>
-                      <p className="text-xs text-rose-400 font-medium">
-                        주의 영양소: {meal.worst_risk_nutrient}
-                      </p>
                     </div>
 
-                    <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 truncate">
-                      메뉴: {meal.foods?.map((f: any) => f.name).join(', ') || '분석 완료'}
+                    <div className="px-4 pb-4 pt-1 flex items-center justify-between gap-2 border-t border-slate-800/60 mt-2">
+                      <button
+                        onClick={() => openEditModal(meal)}
+                        className="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>AI 분석 직접 보정</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteMeal(meal.id)}
+                        className="p-2 bg-slate-800/60 hover:bg-rose-950 text-slate-400 hover:text-rose-400 rounded-xl transition"
+                        title="식단 삭제"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>
+
+      {/* 운영자 AI 분석 직접 보정(Human-in-the-loop) 팝업 모달 */}
+      {editingMeal && (
+        <div 
+          onClick={() => setEditingMeal(null)}
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 text-slate-200"
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-emerald-400" />
+                <h3 className="font-black text-base sm:text-lg text-white">식단 AI 분석 운영자 직접 보정</h3>
+              </div>
+              <button 
+                onClick={() => setEditingMeal(null)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3.5 text-xs sm:text-sm">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-400">식단 요약 제목</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-400">종합 위험 등급</label>
+                <div className="flex gap-2">
+                  {(['safe', 'caution', 'danger'] as const).map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setEditRisk(r)}
+                      className={`flex-1 py-2 rounded-xl font-bold text-xs border transition ${
+                        editRisk === r
+                          ? r === 'danger'
+                            ? 'bg-rose-600 text-white border-rose-500'
+                            : r === 'caution'
+                            ? 'bg-amber-500 text-slate-950 border-amber-400'
+                            : 'bg-emerald-600 text-white border-emerald-500'
+                          : 'bg-slate-950 border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      {r === 'danger' ? '위험 (섭취주의)' : r === 'caution' ? '주의 (양 조절)' : '안전'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-400">주의 요망 영양소</label>
+                <input
+                  type="text"
+                  value={editNutrient}
+                  onChange={(e) => setEditNutrient(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-emerald-500"
+                  placeholder="예: 칼륨, 나트륨, 인"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-400">임상 요약 코멘트 / 조리 가이드</label>
+                <textarea
+                  rows={3}
+                  value={editAdvice}
+                  onChange={(e) => setEditAdvice(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-medium focus:outline-none focus:border-emerald-500 leading-relaxed"
+                  placeholder="전문 영양 가이드 입력"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setEditingMeal(null)}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                disabled={savingMeal}
+                onClick={handleSaveMealCorrection}
+                className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md transition disabled:opacity-50"
+              >
+                {savingMeal ? '저장 중...' : '보정 내용 저장하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
