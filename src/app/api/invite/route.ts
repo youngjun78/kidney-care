@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
 import crypto from 'crypto';
 
-// 1. 자녀가 부모님 초대 링크 생성 시 1회용 보안 토큰 발급
+// NextAuth 시크릿 키를 서명 비밀키로 활용 (서버만 아는 고유 키)
+const SECRET = process.env.NEXTAUTH_SECRET || 'kidney-care-auth-secret-key-3040-5070-ckd';
+
+// 1. 자녀가 부모님 초대 링크 생성 시: 위변조 불가능한 서명 토큰(HMAC-SHA256) 발급
 export async function POST(req: Request) {
   try {
     const { familyCode } = await req.json();
@@ -11,91 +13,66 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: '가족 코드가 필요합니다.' }, { status: 400 });
     }
 
-    // 32자리 무작위 암호 토큰 생성 (추측/무차별 대입 불가능)
-    const token = 'inv_' + crypto.randomBytes(16).toString('hex');
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24시간 유효
+    // 페이로드 구성: 가족코드 + 48시간 유효기간 + 무작위 난수
+    const payload = {
+      familyCode,
+      exp: Date.now() + 48 * 60 * 60 * 1000, // 48시간 유효
+      nonce: crypto.randomBytes(6).toString('hex'),
+    };
 
-    if (supabase) {
-      // Supabase families 테이블의 invite_token 필드에 저장
-      // (토큰, 만료일시, 사용여부)
-      const { error } = await supabase
-        .from('families')
-        .update({
-          invite_token: token,
-          invite_expires_at: expiresAt,
-          invite_used: false,
-        })
-        .eq('family_code', familyCode);
+    const payloadStr = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const signature = crypto.createHmac('sha256', SECRET).update(payloadStr).digest('base64url');
+    const token = `${payloadStr}.${signature}`;
 
-      if (error) {
-        console.error('Invite token save error:', error);
-      }
-    }
-
-    return NextResponse.json({ token, expiresAt });
+    return NextResponse.json({ token });
   } catch (err: any) {
     console.error('Invite generation error:', err);
     return NextResponse.json({ error: err.message || '초대 토큰 생성 실패' }, { status: 500 });
   }
 }
 
-// 2. 부모님이 링크 탭 시 토큰 검증 및 즉시 1회용 소멸
+// 2. 부모님이 링크 탭 시: 디지털 서명 검증 및 즉시 자동 로그인 승인
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const token = searchParams.get('token')?.trim();
 
-    if (!token) {
-      return NextResponse.json({ valid: false, error: '유효한 초대 토큰이 아닙니다.' }, { status: 400 });
+    if (!token || !token.includes('.')) {
+      return NextResponse.json({ valid: false, error: '유효한 초대 링크가 아닙니다.' }, { status: 400 });
     }
 
-    if (!supabase) {
-      return NextResponse.json({ valid: true, familyCode: 'FAMILY', isMock: true });
-    }
+    const [payloadStr, signature] = token.split('.');
+    const expectedSignature = crypto.createHmac('sha256', SECRET).update(payloadStr).digest('base64url');
 
-    // 토큰으로 가족 조회
-    const { data: family, error } = await supabase
-      .from('families')
-      .select('family_code, child_name, invite_expires_at, invite_used')
-      .eq('invite_token', token)
-      .maybeSingle();
-
-    if (error || !family) {
+    // 서명 위변조 검증
+    if (signature !== expectedSignature) {
       return NextResponse.json({
         valid: false,
-        error: '유효하지 않거나 이미 만료된 초대 링크입니다.',
+        error: '위변조되었거나 유효하지 않은 초대 링크입니다.',
       });
     }
 
-    // 만료 시간 검증
-    if (family.invite_expires_at && new Date(family.invite_expires_at) < new Date()) {
+    // 페이로드 해석 및 만료 검증
+    const payload = JSON.parse(Buffer.from(payloadStr, 'base64url').toString('utf8'));
+
+    if (payload.exp && Date.now() > payload.exp) {
       return NextResponse.json({
         valid: false,
-        error: '초대 링크의 유효시간(24시간)이 만료되었습니다. 자녀분께 새 초대장을 요청해주세요.',
+        error: '초대 링크의 유효시간(48시간)이 만료되었습니다. 자녀분께 새 링크를 요청해주세요.',
       });
     }
 
-    // 1회용 사용 처리: 이미 사용된 경우 차단
-    if (family.invite_used) {
-      return NextResponse.json({
-        valid: false,
-        error: '이미 사용된 1회용 초대 링크입니다. 자녀분께 새 링크를 요청해주세요.',
-      });
+    if (!payload.familyCode) {
+      return NextResponse.json({ valid: false, error: '가족 코드 정보가 없습니다.' });
     }
-
-    // 1회 사용 즉시 소멸 처리 (used: true)
-    await supabase
-      .from('families')
-      .update({ invite_used: true })
-      .eq('invite_token', token);
 
     return NextResponse.json({
       valid: true,
-      familyCode: family.family_code,
-      childName: family.child_name || '자녀',
+      familyCode: payload.familyCode,
+      childName: '자녀',
     });
   } catch (err: any) {
     console.error('Token verify error:', err);
-    return NextResponse.json({ valid: false, error: '초대 확인 중 오류가 발생했습니다.' }, { status: 500 });
+    return NextResponse.json({ valid: false, error: '초대장 확인 중 오류가 발생했습니다.' }, { status: 500 });
   }
 }
