@@ -23,7 +23,13 @@ import {
   X,
   Filter,
   Check,
-  Sparkles
+  Sparkles,
+  Clock,
+  Printer,
+  FileText,
+  PieChart,
+  BarChart3,
+  ChevronDown
 } from 'lucide-react';
 
 interface AdminStats {
@@ -71,11 +77,21 @@ export default function AdminDashboardPage() {
   const [recentMeals, setRecentMeals] = useState<MealItem[]>([]);
   
   // 탭 및 필터 상태
-  const [activeTab, setActiveTab] = useState<'overview' | 'families' | 'meals'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'families' | 'meals' | 'analytics'>('overview');
   const [searchFamily, setSearchFamily] = useState('');
   const [selectedRiskFilter, setSelectedRiskFilter] = useState<'all' | 'danger' | 'caution' | 'safe'>('all');
   const [selectedFamilyFilter, setSelectedFamilyFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+
+  // 3단계 임상 통계 & 분석 상태
+  const [analyticsData, setAnalyticsData] = useState<{
+    hourlyDistribution: { hour: string; count: number }[];
+    topDangerFoods: { name: string; nutrient: string; count: number }[];
+    totalAnalyzed: number;
+  } | null>(null);
+
+  // 3단계 외래 진료용 리포트 모달 상태
+  const [reportFamily, setReportFamily] = useState<FamilyItem | null>(null);
 
   // 관리자 보정/상세 모달 상태
   const [editingMeal, setEditingMeal] = useState<MealItem | null>(null);
@@ -107,6 +123,13 @@ export default function AdminDashboardPage() {
         setTopNutrients(data.topRiskNutrients || []);
         setFamilies(data.families || []);
         setRecentMeals(data.recentMeals || []);
+      }
+
+      // 3단계 분석 통계 호출
+      const analyticsRes = await fetch('/api/admin/analytics');
+      const analyticsResJson = await analyticsRes.json();
+      if (analyticsResJson.hourlyDistribution) {
+        setAnalyticsData(analyticsResJson);
       }
     } catch (err) {
       console.error('Fetch admin stats failed:', err);
@@ -388,6 +411,16 @@ export default function AdminDashboardPage() {
         >
           🥗 식단 피드 & AI 보정 검수 ({recentMeals.length})
         </button>
+        <button
+          onClick={() => setActiveTab('analytics')}
+          className={`py-3 px-3 text-xs sm:text-sm font-bold border-b-2 transition ${
+            activeTab === 'analytics'
+              ? 'border-emerald-400 text-emerald-400'
+              : 'border-transparent text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          📈 임상 패턴 & 식품 통계 (3단계)
+        </button>
       </nav>
 
       {/* 본문 콘텐츠 */}
@@ -629,6 +662,7 @@ export default function AdminDashboardPage() {
                       <th className="py-3 px-4">구글 이메일</th>
                       <th className="py-3 px-4">누적 식사 수</th>
                       <th className="py-3 px-4">등록 일시</th>
+                      <th className="py-3 px-4 text-center">외래 진료 리포트</th>
                       <th className="py-3 px-4 text-right">식단 조회</th>
                     </tr>
                   </thead>
@@ -651,6 +685,16 @@ export default function AdminDashboardPage() {
                         </td>
                         <td className="py-3.5 px-4 text-slate-500 text-xs">
                           {new Date(fam.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <button
+                            onClick={() => setReportFamily(fam)}
+                            className="px-2.5 py-1 bg-teal-900/40 hover:bg-teal-800/60 text-teal-300 border border-teal-600/60 rounded-lg text-xs font-bold transition flex items-center gap-1 mx-auto"
+                            title="외래 진료 제출용 리포트 인쇄/발행"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                            <span>진료 리포트</span>
+                          </button>
                         </td>
                         <td className="py-3.5 px-4 text-right">
                           <button
@@ -807,6 +851,178 @@ export default function AdminDashboardPage() {
             )}
           </div>
         )}
+
+        {/* 4. 임상 패턴 & 식품 통계 탭 (3단계) */}
+        {activeTab === 'analytics' && (
+          <div className="space-y-6 animate-in fade-in">
+            {/* 상단 통계 개요 헤더 */}
+            <div className="bg-gradient-to-r from-teal-950/70 via-slate-900 to-slate-900 border border-teal-800/40 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-bold text-teal-400 bg-teal-950 border border-teal-700/60 px-2 py-0.5 rounded-full">
+                    3단계 심층 분석
+                  </span>
+                  <h3 className="text-base sm:text-lg font-black text-white">
+                    환자 식사 행동 패턴 및 고위험 식품 랭킹
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  투석 및 만성 콩팥병 환자의 생체 리듬(식사 시간대)과 축적된 주의 식품을 교차 분석하여 사전 고칼륨/고요산 혈증 위험을 예측합니다.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="bg-slate-800/90 border border-slate-700 px-4 py-2 rounded-xl text-center">
+                  <span className="text-[10px] text-slate-400 block font-bold">분석 완료 표본</span>
+                  <span className="text-lg font-black text-white font-mono">
+                    {analyticsData?.totalAnalyzed ?? stats?.totalMeals ?? 0}
+                    <span className="text-xs font-normal text-slate-400 ml-1">끼니</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 그리드 2열: 시간대별 식사 분포 vs 고위험 식품 빈도수 TOP 6 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* 1. 시간대별 식사 분포 (아침/점심/저녁/야식) */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-emerald-400" />
+                    <h4 className="font-extrabold text-sm sm:text-base text-white">
+                      식사 시간대별 분포 (KST 기준)
+                    </h4>
+                  </div>
+                  <span className="text-[11px] text-slate-400">규칙적 투약·인슐린 관리 연계</span>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  {analyticsData?.hourlyDistribution.map((item) => {
+                    const total = analyticsData.totalAnalyzed || 1;
+                    const percent = Math.round((item.count / total) * 100);
+                    return (
+                      <div key={item.hour} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-slate-300">{item.hour}</span>
+                          <span className="font-mono text-emerald-400 font-bold">
+                            {item.count}끼니 ({percent}%)
+                          </span>
+                        </div>
+                        <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden flex">
+                          <div
+                            style={{ width: `${percent}%` }}
+                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-xl text-xs text-slate-400 leading-relaxed">
+                  💡 <strong className="text-slate-300">임상 권고:</strong> 17~21시 저녁 식단 비중이 높은 환자는 야간 칼륨 배설 정체 위험이 있으므로, 저녁 식단에서는 생채소 데치기(칼륨 용출)를 우선 권장합니다.
+                </div>
+              </div>
+
+              {/* 2. 고위험 식품 빈도 TOP 6 랭킹 */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-400" />
+                    <h4 className="font-extrabold text-sm sm:text-base text-white">
+                      반복 섭취 고위험 식품군 TOP 6
+                    </h4>
+                  </div>
+                  <span className="text-[11px] text-rose-400 font-bold">집중 복약·식이 지도 대상</span>
+                </div>
+
+                <div className="space-y-2 pt-2">
+                  {(!analyticsData || analyticsData.topDangerFoods.length === 0) ? (
+                    <div className="text-center py-8 text-slate-500 text-xs">
+                      검출된 고위험 식품 데이터가 충분하지 않습니다.
+                    </div>
+                  ) : (
+                    analyticsData.topDangerFoods.map((food, idx) => (
+                      <div
+                        key={food.name}
+                        className="p-3 bg-slate-950/80 border border-slate-800/80 rounded-xl flex items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${
+                            idx === 0
+                              ? 'bg-rose-500 text-white'
+                              : idx === 1
+                              ? 'bg-amber-500 text-slate-950'
+                              : 'bg-slate-800 text-slate-400'
+                          }`}>
+                            {idx + 1}
+                          </span>
+                          <div>
+                            <span className="font-bold text-sm text-white block">{food.name}</span>
+                            <span className="text-[11px] text-slate-400">
+                              위험 성분: <strong className="text-amber-400">{food.nutrient}</strong>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="text-xs font-mono font-bold text-rose-400 bg-rose-950/70 border border-rose-800/60 px-2 py-0.5 rounded-full">
+                            {food.count}회 감지
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-xl text-xs text-slate-400 leading-relaxed">
+                  ⚠️ <strong className="text-slate-300">식이 중재:</strong> 1~3위 식품은 주 2회 이상 빈번히 섭취 시 부정맥 및 혈청 인 상승을 유발하므로 1:1 맞춤 영양 코멘트 등록이 필요합니다.
+                </div>
+              </div>
+            </div>
+
+            {/* 하단 가족별 임상 프로파일 종합 요약 카드 */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-black text-sm sm:text-base text-white">가족별 외래 진료 영양 요약 리포트 발행 대기열</h4>
+                  <p className="text-xs text-slate-400">정기 신장내과 외래 진료 시 주치의에게 출력/제출할 수 있는 종합 식이 차트입니다.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {families.map((fam) => {
+                  const famMeals = recentMeals.filter(m => m.family_code === fam.family_code);
+                  const dangerCount = famMeals.filter(m => m.overall_risk === 'danger').length;
+                  const cautionCount = famMeals.filter(m => m.overall_risk === 'caution').length;
+
+                  return (
+                    <div key={fam.id} className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono font-black text-emerald-400 text-sm">{fam.family_code}</span>
+                        <span className="text-xs text-slate-400">{fam.child_name || '보호자'}</span>
+                      </div>
+                      <div className="text-xs text-slate-300 space-y-1">
+                        <div>누적 기록: <strong className="text-white">{fam.mealCount}끼니</strong></div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-rose-400 font-bold">위험 {dangerCount}</span>
+                          <span className="text-amber-400 font-bold">주의 {cautionCount}</span>
+                          <span className="text-emerald-400 font-bold">안전 {Math.max(0, fam.mealCount - dangerCount - cautionCount)}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setReportFamily(fam)}
+                        className="w-full py-2 bg-teal-900/40 hover:bg-teal-800/60 text-teal-300 border border-teal-700/60 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>외래 진료용 리포트 미리보기 & 인쇄</span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* 운영자 AI 분석 직접 보정(Human-in-the-loop) 팝업 모달 */}
@@ -906,6 +1122,205 @@ export default function AdminDashboardPage() {
               >
                 {savingMeal ? '저장 중...' : '보정 내용 저장하기'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3단계: 외래 진료용 환자 종합 영양 리포트 인쇄 모달 */}
+      {reportFamily && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white text-slate-900 w-full max-w-3xl rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto print:max-h-none print:shadow-none print:p-0">
+            {/* 상단 닫기 & 인쇄 버튼 바 */}
+            <div className="flex items-center justify-between border-b border-slate-200 pb-4 print:hidden">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-extrabold text-base text-slate-900">
+                  신장내과 외래 진료 제출용 종합 식이 평가서
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>리포트 인쇄 / PDF 저장</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReportFamily(null)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* 실제 진료 리포트 페이퍼 본문 (A4 규격 스타일) */}
+            <div className="space-y-6 text-slate-800">
+              {/* 리포트 헤더 */}
+              <div className="border-b-2 border-slate-900 pb-3 flex justify-between items-end">
+                <div>
+                  <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest">
+                    안심콩팥케어 AI 임상 관제 솔루션
+                  </span>
+                  <h2 className="text-2xl font-black text-slate-900 mt-0.5">
+                    만성 콩팥병(CKD) 식이 패턴 및 영양 모니터링 보고서
+                  </h2>
+                </div>
+                <div className="text-right text-xs text-slate-500 font-medium">
+                  발행일자: {new Date().toLocaleDateString('ko-KR')}
+                </div>
+              </div>
+
+              {/* 환자 및 보호자 기본 정보 박스 */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
+                <div>
+                  <span className="text-slate-500 block font-bold">환자 식별 코드</span>
+                  <span className="font-mono font-black text-slate-900 text-sm">
+                    {reportFamily.family_code}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block font-bold">등록 보호자</span>
+                  <span className="font-bold text-slate-900 text-sm">
+                    {reportFamily.child_name || '미등록'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block font-bold">총 모니터링 끼니</span>
+                  <span className="font-mono font-bold text-emerald-700 text-sm">
+                    {recentMeals.filter(m => m.family_code === reportFamily.family_code).length} 끼니
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block font-bold">질환군 분류</span>
+                  <span className="font-bold text-slate-900 text-sm">
+                    신부전 / 혈액투석 식이
+                  </span>
+                </div>
+              </div>
+
+              {/* 식이 위험도 종합 요약 */}
+              {(() => {
+                const famMeals = recentMeals.filter(m => m.family_code === reportFamily.family_code);
+                const dangerMeals = famMeals.filter(m => m.overall_risk === 'danger');
+                const cautionMeals = famMeals.filter(m => m.overall_risk === 'caution');
+                const safeMeals = famMeals.filter(m => m.overall_risk === 'safe');
+
+                return (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="border border-rose-200 bg-rose-50/70 p-3.5 rounded-xl text-center">
+                        <span className="text-xs font-bold text-rose-700 block">위험 식단 (고칼륨·고인)</span>
+                        <span className="text-xl font-black text-rose-600 font-mono">
+                          {dangerMeals.length}건
+                        </span>
+                      </div>
+                      <div className="border border-amber-200 bg-amber-50/70 p-3.5 rounded-xl text-center">
+                        <span className="text-xs font-bold text-amber-700 block">주의 식단 (양 조절 필요)</span>
+                        <span className="text-xl font-black text-amber-600 font-mono">
+                          {cautionMeals.length}건
+                        </span>
+                      </div>
+                      <div className="border border-emerald-200 bg-emerald-50/70 p-3.5 rounded-xl text-center">
+                        <span className="text-xs font-bold text-emerald-700 block">안심 식단 (적정 섭취)</span>
+                        <span className="text-xl font-black text-emerald-600 font-mono">
+                          {safeMeals.length}건
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 임상 주치의 참고 권고사항 */}
+                    <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 space-y-2">
+                      <h4 className="font-bold text-xs text-slate-700 flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-emerald-600" />
+                        <span>AI 기반 임상 영양 분석 종합 평가</span>
+                      </h4>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        {dangerMeals.length > 0 ? (
+                          <>
+                            해당 환자는 총 {famMeals.length}회의 식단 중 {dangerMeals.length}회에서 고위험 식품(주요 주의 영양소:{' '}
+                            <strong className="text-rose-600 font-bold">
+                              {Array.from(new Set(dangerMeals.map(m => m.worst_risk_nutrient))).join(', ') || '칼륨·인'}
+                            </strong>
+                            )이 감지되었습니다. 정기 외래 진료 시 전해질(K) 및 인(P) 수치와 연계한 식이 상담 및 인결합제 복용 지도 확인을 권장합니다.
+                          </>
+                        ) : (
+                          <>
+                            기록된 전 기간 동안 고칼륨/고인 위험 식단이 안정적으로 조절되고 있습니다. 현재의 저염·데친 채소 중심 식단을 유지할 수 있도록 격려해주시기 바랍니다.
+                          </>
+                        )}
+                      </p>
+                    </div>
+
+                    {/* 주요 식단 기록 상세 테이블 */}
+                    <div className="space-y-2">
+                      <h4 className="font-extrabold text-xs text-slate-900">
+                        최근 모니터링 식단 상세 기록 (최근 {famMeals.length}건)
+                      </h4>
+                      <div className="border border-slate-200 rounded-xl overflow-hidden">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-100 text-slate-600 font-bold border-b border-slate-200">
+                            <tr>
+                              <th className="py-2.5 px-3">일시</th>
+                              <th className="py-2.5 px-3">식단명</th>
+                              <th className="py-2.5 px-3">위험 등급</th>
+                              <th className="py-2.5 px-3">주의 영양소</th>
+                              <th className="py-2.5 px-3">주요 구성 반찬</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {famMeals.length === 0 ? (
+                              <tr>
+                                <td colSpan={5} className="py-6 text-center text-slate-400">
+                                  등록된 식단 기록이 없습니다.
+                                </td>
+                              </tr>
+                            ) : (
+                              famMeals.map((m) => (
+                                <tr key={m.id} className="hover:bg-slate-50/50">
+                                  <td className="py-2.5 px-3 text-slate-500 font-mono text-[11px]">
+                                    {new Date(m.created_at).toLocaleDateString('ko-KR')}
+                                  </td>
+                                  <td className="py-2.5 px-3 font-bold text-slate-900">
+                                    {m.summary_title}
+                                  </td>
+                                  <td className="py-2.5 px-3">
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                      m.overall_risk === 'danger'
+                                        ? 'bg-rose-100 text-rose-700 border border-rose-300'
+                                        : m.overall_risk === 'caution'
+                                        ? 'bg-amber-100 text-amber-700 border border-amber-300'
+                                        : 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                                    }`}>
+                                      {m.overall_risk === 'danger' ? '위험' : m.overall_risk === 'caution' ? '주의' : '안전'}
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5 px-3 font-bold text-rose-600 text-[11px]">
+                                    {m.worst_risk_nutrient}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-slate-600 text-[11px]">
+                                    {m.foods?.map((f: any) => f.name).join(', ') || '-'}
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* 하단 의료진 확인 서명란 */}
+                    <div className="pt-4 border-t border-slate-200 flex justify-between items-center text-xs text-slate-500">
+                      <span>담당 신장내과 전문의 / 임상영양사 확인: ___________________ (서명)</span>
+                      <span>안심콩팥케어 임상관제시스템 v2.0</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
