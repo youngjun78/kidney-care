@@ -455,8 +455,8 @@ export default function Home() {
           )}
         </section>
 
-        {/* 하단 면책 조항 & 환우 가족 피드백 창구 */}
-        <footer className="w-full bg-slate-100 border-t border-slate-200 py-3 px-3.5 text-center text-[10px] text-gray-500 space-y-2">
+        {/* 하단 면책 조항 & 환우 가족 피드백 창구 & 법적 고지 */}
+        <footer className="w-full bg-slate-100 border-t border-slate-200 py-3.5 px-3.5 text-center text-[10px] text-gray-500 space-y-2.5">
           <div className="flex items-center justify-center gap-1.5 text-emerald-800 bg-emerald-50 border border-emerald-200/80 py-1.5 px-3 rounded-xl max-w-xs mx-auto">
             <MessageCircleQuestion className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <span className="font-bold text-[11px]">환우 가족 의견 · 기능 제안</span>
@@ -467,6 +467,17 @@ export default function Home() {
               보내기 →
             </a>
           </div>
+
+          <div className="flex items-center justify-center gap-3 text-[11px] text-slate-500 font-semibold pt-0.5">
+            <a href="/privacy" className="hover:text-slate-900 underline underline-offset-2">
+              개인정보처리방침
+            </a>
+            <span>·</span>
+            <a href="/terms" className="hover:text-slate-900 underline underline-offset-2">
+              서비스 이용약관
+            </a>
+          </div>
+
           <p className="leading-normal">
             ⚠️ <strong>안내</strong>: 본 서비스는 의료기기나 진단 도구가 아니며, 신장 질환 식단 선택을 돕는 보조 가이드입니다. 정확한 영양 관리는 주치의와 상담하십시오.
           </p>
