@@ -41,7 +41,7 @@ export default function PrivacyPage() {
               &apos;안심콩팥케어&apos;(이하 &apos;서비스&apos;)는 만성 신장 질환(CKD, 투석 등) 환자와 그 가족의 안전한 식이 관리를 보조하기 위해 다음의 목적으로 최소한의 개인정보를 수집 및 이용합니다:
             </p>
             <ul className="list-disc pl-5 space-y-1 text-slate-600">
-              <li>Google OAuth 소셜 로그인을 통한 가족 계정 식별 및 연동</li>
+              <li>카카오(Kakao) 및 구글(Google) 소셜 로그인을 통한 가족 계정 식별 및 연동</li>
               <li>업로드된 음식 사진의 AI 영양성분(칼륨, 나트륨, 인, 단백질) 분석 결과 제공</li>
               <li>환자와 보호자(자녀) 간 실시간 식단 정보 동기화 및 외래 진료용 요약 리포트 제공</li>
             </ul>
@@ -51,10 +51,10 @@ export default function PrivacyPage() {
             <h2 className="text-sm sm:text-base font-extrabold text-slate-900">2. 수집하는 개인정보 항목 및 수집 방법</h2>
             <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
               <div>
-                <strong className="text-slate-900 block mb-0.5">① 보호자(자녀) 구글 로그인 시 (자동 수집)</strong>
+                <strong className="text-slate-900 block mb-0.5">① 보호자(자녀) 카카오 / 구글 간편 로그인 시 (자동 수집)</strong>
                 <span className="text-slate-600">
-                  구글 계정 식별자(ID), 이름(닉네임), 이메일 주소, 프로필 이미지 URL<br />
-                  <span className="text-emerald-700 font-bold">※ 비밀번호는 구글(Google) 공식 보안 인증 시스템을 통해 처리되며, 본 서비스에는 일절 전송되거나 저장되지 않습니다.</span>
+                  카카오/구글 계정 고유 식별자(ID), 닉네임(이름), 이메일 주소, 프로필 이미지 URL<br />
+                  <span className="text-emerald-700 font-bold">※ 비밀번호는 카카오 및 구글의 공식 보안 인증 시스템(OAuth 2.0)을 통해 안전하게 처리되며, 본 서비스에는 일절 전송되거나 저장되지 않습니다.</span>
                 </span>
               </div>
               <div className="pt-2 border-t border-slate-200">
