@@ -148,20 +148,20 @@ export default function AuthGateModal({ onParentConnect }: AuthGateModalProps) {
                 setTab('child');
                 setErrorMessage('');
               }}
-              className="w-full p-4 rounded-2xl border-2 border-blue-600 hover:bg-blue-50/50 transition flex items-center gap-4 text-left group"
+              className="w-full p-4 rounded-2xl border-2 border-emerald-600 hover:bg-emerald-50/50 transition flex items-center gap-4 text-left group"
             >
-              <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition">
+              <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition">
                 <Users className="w-6 h-6" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <span className="font-extrabold text-gray-900 text-base">자녀(보호자)로 시작하기</span>
-                  <span className="text-[11px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">
-                    Google 로그인
+                  <span className="text-[11px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full">
+                    카카오 1초 로그인
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  구글 계정으로 로그인 후 부모님 식단 모니터링
+                  카카오 또는 구글 계정으로 로그인 후 부모님 식단 모니터링
                 </p>
               </div>
             </button>
