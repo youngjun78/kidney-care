@@ -14,6 +14,7 @@ export default function AuthGateModal({ onParentConnect }: AuthGateModalProps) {
   const [rememberDevice, setRememberDevice] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [loadingKakao, setLoadingKakao] = useState(false);
   const [validatingCode, setValidatingCode] = useState(false);
 
   const handleParentSubmit = async (e: React.FormEvent) => {
@@ -55,6 +56,17 @@ export default function AuthGateModal({ onParentConnect }: AuthGateModalProps) {
       console.error(err);
       alert('구글 로그인 호출 중 오류가 발생했습니다.');
       setLoadingGoogle(false);
+    }
+  };
+
+  const handleKakaoSignIn = async () => {
+    try {
+      setLoadingKakao(true);
+      await signIn('kakao', { callbackUrl: '/' });
+    } catch (err) {
+      console.error(err);
+      alert('카카오 로그인 호출 중 오류가 발생했습니다.');
+      setLoadingKakao(false);
     }
   };
 
@@ -235,23 +247,38 @@ export default function AuthGateModal({ onParentConnect }: AuthGateModalProps) {
           </form>
         )}
 
-        {/* 2. 자녀 모드: Google OAuth 로그인 */}
+        {/* 2. 자녀 모드: 소셜 로그인 (카카오 / 구글) */}
         {tab === 'child' && (
           <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-left">
-              <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5 mb-1">
-                <ShieldCheck className="w-4 h-4 text-blue-600" />
-                보호자 구글 계정 로그인
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-left">
+              <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5 mb-1">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                보호자 간편 로그인
               </span>
-              <p className="text-xs text-blue-800 leading-relaxed">
-                구글 계정으로 로그인하시면 부모님과 연결할 <strong>가족 고유 안심 번호</strong>가 생성됩니다.
+              <p className="text-xs text-emerald-800 leading-relaxed">
+                로그인하시면 부모님과 연결할 <strong>가족 고유 안심 번호</strong>가 자동으로 발급됩니다.
               </p>
             </div>
 
             <div className="space-y-2.5">
+              {/* 카카오 1초 간편 로그인 (대한민국 최우선 배치) */}
               <button
                 type="button"
-                disabled={loadingGoogle}
+                disabled={loadingKakao || loadingGoogle}
+                onClick={handleKakaoSignIn}
+                className="w-full py-3.5 px-4 rounded-xl bg-[#FEE500] hover:bg-[#FDD835] text-[#191919] font-extrabold text-sm shadow-sm transition flex items-center justify-center gap-2.5 disabled:opacity-50 active:scale-[0.98]"
+              >
+                {/* 카카오 심볼 SVG */}
+                <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 3C6.477 3 2 6.477 2 10.772c0 2.768 1.874 5.187 4.697 6.483l-.974 3.568c-.085.312.23.57.494.402l4.248-2.808c.502.054 1.014.083 1.535.083 5.523 0 10-3.477 10-7.728S17.523 3 12 3z" />
+                </svg>
+                <span>{loadingKakao ? '카카오 로그인으로 이동 중...' : '카카오로 1초 만에 시작하기'}</span>
+              </button>
+
+              {/* 구글 로그인 */}
+              <button
+                type="button"
+                disabled={loadingGoogle || loadingKakao}
                 onClick={handleGoogleSignIn}
                 className="w-full py-3.5 px-4 rounded-xl border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold text-sm shadow-sm transition flex items-center justify-center gap-3 bg-white disabled:opacity-50"
               >
