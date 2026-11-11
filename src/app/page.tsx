@@ -102,7 +102,18 @@ export default function Home() {
   // 2. 자녀 로그인 시: 백그라운드에서 서버 DB 가족 코드 동기화
   useEffect(() => {
     async function syncFamilyCode() {
-      if (authSession?.user?.email) {
+      const email = authSession?.user?.email;
+      if (email) {
+        // 이미 로컬스토리지에 해당 이메일에 대한 가족 코드가 저장되어 있다면 불필요한 중복 호출 방지
+        const cachedCode = localStorage.getItem('kidney_child_family_code');
+        const cachedEmail = localStorage.getItem('kidney_child_email');
+
+        if (cachedCode && cachedEmail === email) {
+          setChildFamilyCode(cachedCode);
+          setActiveTab('child');
+          return;
+        }
+
         try {
           if (!latestAnalysis) {
             setLoadingInitialMeal(true);
@@ -111,14 +122,15 @@ export default function Home() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              email: authSession.user.email,
-              name: authSession.user.name,
+              email: email,
+              name: authSession?.user?.name || '보호자',
             }),
           });
           const data = await res.json();
           if (data.familyCode) {
             setChildFamilyCode(data.familyCode);
             localStorage.setItem('kidney_child_family_code', data.familyCode);
+            localStorage.setItem('kidney_child_email', email);
             setActiveTab('child');
           }
         } catch (e) {
@@ -128,7 +140,7 @@ export default function Home() {
     }
 
     syncFamilyCode();
-  }, [authSession]);
+  }, [authSession?.user?.email]);
 
   // 3. 최신 식단 동기화
   useEffect(() => {
