@@ -119,7 +119,7 @@ export default function PrivacyPage() {
             <div className="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-100 text-xs space-y-1">
               <div><strong>서비스명:</strong> 안심콩팥케어 (Kidney Care)</div>
               <div><strong>개인정보 보호책임자:</strong> 서비스 운영팀</div>
-              <div><strong>문의 이메일:</strong> <a href="mailto:youngjun78@gmail.com" className="text-emerald-700 underline font-bold">youngjun78@gmail.com</a></div>
+              <div><strong>문의 이메일:</strong> <a href="mailto:jun1042999@gmail.com" className="text-emerald-700 underline font-bold">jun1042999@gmail.com</a></div>
             </div>
           </section>
         </div>

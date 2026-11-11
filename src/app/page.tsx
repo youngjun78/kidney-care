@@ -461,7 +461,7 @@ export default function Home() {
             <MessageCircleQuestion className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <span className="font-bold text-[11px]">환우 가족 의견 · 기능 제안</span>
             <a
-              href="mailto:youngjun78@gmail.com?subject=[안심콩팥케어] 환우 가족 의견 및 문의"
+              href="mailto:jun1042999@gmail.com?subject=[안심콩팥케어] 환우 가족 의견 및 문의"
               className="ml-auto underline font-black text-emerald-700 hover:text-emerald-900"
             >
               보내기 →

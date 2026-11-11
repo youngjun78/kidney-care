@@ -70,7 +70,7 @@ export default function TermsPage() {
           <section className="space-y-2">
             <h2 className="text-sm sm:text-base font-extrabold text-slate-900">제5조 (문의 및 분쟁 해결)</h2>
             <p>
-              서비스 이용과 관련한 문의사항은 운영팀 이메일(<a href="mailto:youngjun78@gmail.com" className="text-emerald-700 underline font-bold">youngjun78@gmail.com</a>)로 문의해 주시기 바랍니다.
+              서비스 이용과 관련한 문의사항은 운영팀 이메일(<a href="mailto:jun1042999@gmail.com" className="text-emerald-700 underline font-bold">jun1042999@gmail.com</a>)로 문의해 주시기 바랍니다.
             </p>
           </section>
         </div>
