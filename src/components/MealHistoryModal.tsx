@@ -53,6 +53,10 @@ export default function MealHistoryModal({ familyCode, onClose, onSelectMeal }: 
     }
 
     async function loadHistory() {
+      if (!familyCode) {
+        setLoading(false);
+        return;
+      }
       try {
         const res = await fetch(`/api/meals?familyCode=${familyCode}&all=true`);
         const data = await res.json();
@@ -69,6 +73,8 @@ export default function MealHistoryModal({ familyCode, onClose, onSelectMeal }: 
 
     if (familyCode) {
       loadHistory();
+    } else {
+      setLoading(false);
     }
   }, [familyCode]);
 

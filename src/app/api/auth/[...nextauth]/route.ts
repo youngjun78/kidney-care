@@ -18,6 +18,10 @@ const authOptions: AuthOptions = {
     async session({ session, token }: any) {
       if (session?.user) {
         session.user.id = token.sub;
+        // 카카오 로그인의 경우 이메일 동의를 안 했거나 없을 때 고유 id 기반 가상 이메일 생성
+        if (!session.user.email && token.sub) {
+          session.user.email = `kakao_${token.sub}@kidney.care`;
+        }
       }
       return session;
     },
