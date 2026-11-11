@@ -15,12 +15,22 @@ const authOptions: AuthOptions = {
   ],
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
+    async jwt({ token, account, user }: any) {
+      // 카카오 최초 로그인 시 고유 account.providerAccountId를 토큰에 확실하게 저장
+      if (account?.provider === 'kakao' && account.providerAccountId) {
+        token.kakaoId = account.providerAccountId;
+      }
+      return token;
+    },
     async session({ session, token }: any) {
       if (session?.user) {
         session.user.id = token.sub;
-        // 카카오 로그인의 경우 이메일 동의를 안 했거나 없을 때 고유 id 기반 가상 이메일 생성
-        if (!session.user.email && token.sub) {
-          session.user.email = `kakao_${token.sub}@kidney.care`;
+        // 카카오 로그인 시 이메일이 없거나 동의 안 되었으면 kakaoId 기반 불변 이메일 부여
+        if (!session.user.email) {
+          const uniqueId = token.kakaoId || token.sub;
+          if (uniqueId) {
+            session.user.email = `kakao_${uniqueId}@kidney.care`;
+          }
         }
       }
       return session;
