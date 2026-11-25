@@ -25,12 +25,11 @@ export default function ParentView({ familyCode, onAnalysisComplete }: ParentVie
       setIsSuccess(false);
       setStatusMessage('사진을 가볍게 압축하고 있습니다...');
 
-      // 1. 고효율 경량 압축 (AI 인식에는 충분하면서 용량은 90% 이상 절감)
-      // 최대 640px 해상도, 품질 0.6, 목표 용량 0.15MB(150KB) 이하
+      // 1. 고효율 초경량 압축 (속도 최적화: 480px, 품질 0.5, 0.08MB 이하로 줄여 네트워크 전송 및 AI 처리 지연 대폭 단축)
       const options = {
-        maxSizeMB: 0.15,
-        maxWidthOrHeight: 640,
-        initialQuality: 0.6,
+        maxSizeMB: 0.08,
+        maxWidthOrHeight: 480,
+        initialQuality: 0.5,
         useWebWorker: true,
         fileType: 'image/jpeg',
       };

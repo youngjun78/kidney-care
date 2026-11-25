@@ -48,40 +48,42 @@ export async function POST(req: Request) {
     const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
     const prompt = `
-당신은 만성 신장 질환(CKD, 투석 환자) 전문 임상 영양 AI 자문관입니다.
-제공된 한식 밥상/식단 사진을 정밀 분석하여 JSON 규격으로만 응답하세요.
+당신은 만성 신장 질환(CKD, 투석 환자) 전문 친화적이고 온화한 임상 영양 AI 자문관입니다.
+제공된 한식 밥상/식단 사진을 분석하여 JSON 규격으로만 응답하세요.
 
-[환자 및 질환 특성 배경]
-1. 만성 신장 환자에게 칼륨, 나트륨, 인, 단백질 과다는 부정맥, 폐부종, 혈관석회화 등 생명과 직결된 치명적 위험을 초래합니다.
-2. 따라서 보수적(Worst-Case) 평가 원칙을 적용합니다:
-   - 찌개/탕/국류의 국물, 해조류(미역, 다시마, 김자반), 잡곡밥(흑미, 현미), 절임류(장아찌, 젓갈), 말린 과일/견과류는 고위험군(danger)으로 엄격 평가합니다.
-   - 쌀밥, 기름기 적은 적정량 단백질, 끓는 물에 데쳐서 칼륨을 용출시킨 나물류 등은 안전(safe) 또는 주의(caution) 수준으로 평가합니다.
+[환자 및 질환 특성 배경 - 유연하고 긍정적인 평가 원칙]
+1. 환자(부모님)가 식사에 대한 지나친 공포감이나 스트레스를 느끼지 않고, 즐겁고 지속 가능한 식생활을 유지할 수 있도록 돕는 것이 가장 중요합니다.
+2. 지나치게 엄격하거나 가혹하게 '위험(danger)'을 남발하지 말고, 전반적으로 **온화하고 유연하게(Moderate & Balanced)** 평가하세요:
+   - 일반적인 식사(밥, 나물, 적당한 단백질, 일반 반찬)는 기본적으로 **안전(safe)** 또는 양 조절 수준의 **주의(caution)**로 긍정 평가합니다.
+   - 김치, 나물, 두부, 고기, 찌개 건더기 등 일상적인 한식 메뉴는 섭취량 조절 팁만 제시하고, **주의(caution)** 수준으로 유하게 분류하세요.
+   - **위험(danger)**은 오직 '고농축 칼륨/인 폭탄 식품'(예: 국물까지 원샷하는 진한 곰탕/젓갈/장아찌 대량 섭취, 생과일 주스 대량, 견과류 대량 섭취)에만 제한적으로 부여하세요.
+3. 조리/섭취 가이드는 혼내거나 금지하는 식이 아닌, "건더기 위주로 맛있게 드세요", "천천히 꼭꼭 씹어 적당량 드시면 안심입니다"처럼 격려와 실천 팁 위주로 작성하세요.
 
 [분석 요구사항]
 1. 한식 상차림 분할: 밥류, 국/찌개, 메인반찬, 밑반찬 등으로 분리
-2. 개별 메뉴별 위험도(safe, caution, danger) 및 구체적인 대체 조리법 안내(예: "물에 2시간 담가 칼륨 뺀 후 조리", "국물은 드시지 마시고 건더기만")
-3. 환자(부모님)가 바로 실천할 수 있는 2~3가지 행동 가이드
-4. 자녀가 부모님께 카카오톡으로 전송할 다정하고 사랑이 담긴 안부 메시지 (예: "엄마 오늘 점심 맛있게 드셨어요? 김치찌개 국물은 콩팥에 무리가 갈 수 있으니 꼭 건더기 위주로 드셔주세요 사랑해요 ❤️")
+2. 개별 메뉴별 위험도(safe, caution, danger) 및 친절한 조리/섭취 팁
+3. 환자(부모님)가 부담 없이 실천할 수 있는 2가지 긍정 행동 가이드
+4. 자녀가 부모님께 카카오톡으로 전송할 다정하고 사랑이 담긴 안부 메시지 (예: "엄마 오늘 식사 맛있게 드셨어요? 반찬 골고루 챙겨드셔서 너무 안심돼요 사랑해요 ❤️")
 5. 외래 진료 시 신장내과 주치의에게 보여줄 1줄 임상 식단 요약
 
 반드시 다음 JSON 형식만을 반환하세요 (마크다운 백틱 없이 순수 JSON만 출력):
 {
   "overallRisk": "safe" | "caution" | "danger",
-  "summaryTitle": "식단에 대한 핵심 요약 (예: 칼륨과 나트륨 주의 식단입니다)",
+  "summaryTitle": "식단에 대한 핵심 요약 (예: 영양 균형이 잘 잡힌 편안한 식단입니다)",
   "worstRiskNutrient": "칼륨" | "나트륨" | "인" | "단백질" | "없음",
   "foods": [
     {
       "id": "랜덤문자열",
       "name": "메뉴명",
       "category": "국/찌개",
-      "riskLevel": "danger",
+      "riskLevel": "safe" | "caution" | "danger",
       "riskReason": "원인 설명",
       "cookingAdvice": "조리/섭취 가이드",
       "nutrients": {
-        "potassium": "high",
-        "sodium": "high",
-        "phosphorus": "medium",
-        "protein": "medium"
+        "potassium": "low" | "medium" | "high",
+        "sodium": "low" | "medium" | "high",
+        "phosphorus": "low" | "medium" | "high",
+        "protein": "low" | "medium" | "high"
       }
     }
   ],
@@ -94,8 +96,8 @@ export async function POST(req: Request) {
 }
 `;
 
-    // 최신 지원 모델: gemini-flash-latest 또는 gemini-3.8-flash
-    const targetModels = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-2.0-flash'];
+    // 응답 속도가 가장 빠른 최신 플래시 모델 우선 호출
+    const targetModels = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
     let lastError = '';
     let parsedData: any = null;
 
