@@ -276,8 +276,8 @@ export default function Home() {
         />
       )}
 
-      {/* 모바일 최적화 컨테이너: 스마트폰 기준 깔끔한 앱 쉘 레이아웃 */}
-      <div className="w-full max-w-md mx-auto flex flex-col min-h-screen bg-slate-50/70 shadow-2xl relative">
+      {/* 모바일 최적화 컨테이너: 모바일 브라우저 화면을 100% 꽉 채우고 PC에서는 최대 600px로 넉넉하게 확장 */}
+      <div className="w-full sm:max-w-xl mx-auto flex flex-col min-h-screen bg-slate-50/70 shadow-2xl relative">
         {/* 글로벌 탑 네비게이션: 안심 헬스케어 브랜드 시그니처 프리미엄 헤더 */}
         <header className="sticky top-0 z-40 bg-gradient-to-r from-slate-900 via-slate-850 to-emerald-950 border-b border-emerald-900/40 shadow-md w-full backdrop-blur-md">
           <div className="w-full px-3.5 h-16 flex items-center justify-between gap-1.5">
