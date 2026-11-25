@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: "안심콩팥케어 - 신장 질환 식단 안심 케어 서비스",
   description: "3040 자녀와 5070 부모님을 잇는 AI 기반 신장 질환 식단 안심 케어",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
