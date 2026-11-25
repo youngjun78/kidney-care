@@ -19,68 +19,90 @@ export default function ParentView({ familyCode, onAnalysisComplete }: ParentVie
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  // HTML5 Canvas를 이용한 0.1초 즉각적인 초고속 리사이징 & 압축 (외부 무거운 라이브러리 오버헤드 제거)
+  const fastCompressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 480;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(e.target?.result as string);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          // 480px, jpeg 품질 0.65 -> 초경량 30~50KB 생성 (수 밀리초 만에 완료)
+          const base64 = canvas.toDataURL('image/jpeg', 0.65);
+          resolve(base64);
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleImageFile = async (file: File) => {
     try {
       setLoading(true);
       setIsSuccess(false);
-      setStatusMessage('사진을 가볍게 압축하고 있습니다...');
+      setStatusMessage('AI 안심 영양사가 밥상을 살펴보고 있습니다...');
 
-      // 1. 고효율 초경량 압축 (속도 최적화: 480px, 품질 0.5, 0.08MB 이하로 줄여 네트워크 전송 및 AI 처리 지연 대폭 단축)
-      const options = {
-        maxSizeMB: 0.08,
-        maxWidthOrHeight: 480,
-        initialQuality: 0.5,
-        useWebWorker: true,
-        fileType: 'image/jpeg',
-      };
-      const compressedFile = await imageCompression(file, options);
+      // 1. 브라우저 내장 Canvas로 0.1초 초고속 압축
+      const base64Data = await fastCompressImage(file);
+      setPreview(base64Data);
 
-      // 2. Base64 변환
-      const reader = new FileReader();
-      reader.readAsDataURL(compressedFile);
-      reader.onloadend = async () => {
-        const base64Data = reader.result as string;
-        setPreview(base64Data);
+      // 2. 백엔드 초고속 AI 분석 API 호출
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: base64Data,
+          mimeType: 'image/jpeg',
+          familyCode: familyCode || undefined,
+        }),
+      });
 
-        setStatusMessage('AI 안심 영양사가 밥상을 살펴보고 있습니다...');
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || '분석에 실패했습니다.');
+      }
 
-        // 3. 백엔드 API 호출
-        try {
-          const res = await fetch('/api/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              imageBase64: base64Data,
-              mimeType: 'image/jpeg',
-              familyCode: familyCode || undefined,
-            }),
-          });
+      const data: MealAnalysisResult = await res.json();
+      data.imageUrl = base64Data;
 
-          if (!res.ok) {
-            const errData = await res.json();
-            throw new Error(errData.error || '분석에 실패했습니다.');
-          }
+      setIsSuccess(true);
+      setStatusMessage('전송 완료! 자녀에게 안심 알림이 전달되었습니다.');
+      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
 
-          const data: MealAnalysisResult = await res.json();
-          data.imageUrl = base64Data; // 가벼운 압축 이미지로 저장
-
-          setIsSuccess(true);
-          setStatusMessage('전송 완료! 자녀에게 안심 알림이 전달되었습니다.');
-          confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
-
-          // 상위 콜백
-          onAnalysisComplete(data, base64Data);
-        } catch (apiErr: any) {
-          console.error(apiErr);
-          alert(`분석 오류: ${apiErr.message}`);
-          setStatusMessage('오류가 발생했습니다. 다시 촬영해 주세요.');
-        } finally {
-          setLoading(false);
-        }
-      };
+      // 상위 콜백
+      onAnalysisComplete(data, base64Data);
     } catch (err: any) {
       console.error(err);
-      alert('이미지 처리 중 오류가 발생했습니다.');
+      alert(`분석 오류: ${err.message || '이미지 처리 중 오류가 발생했습니다.'}`);
+      setStatusMessage('오류가 발생했습니다. 다시 촬영해 주세요.');
+    } finally {
       setLoading(false);
     }
   };

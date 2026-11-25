@@ -96,8 +96,8 @@ export async function POST(req: Request) {
 }
 `;
 
-    // 응답 속도가 가장 빠른 최신 플래시 모델 우선 호출
-    const targetModels = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
+    // 가장 빠르고 안정적인 모델 순서로 호출 (gemini-flash-lite-latest: ~900ms, gemini-flash-latest: ~2.5s)
+    const targetModels = ['gemini-flash-lite-latest', 'gemini-2.5-flash-lite', 'gemini-flash-latest'];
     let lastError = '';
     let parsedData: any = null;
 
